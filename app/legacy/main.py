@@ -1,9 +1,8 @@
 import cv2
 import time
-from detection.hand_tracking import HandTracker
-from preprocessing.data_processing import DataProcessor
-from utils.data_collector import DataCollector
-import os
+from app.utils.hand_tracking import HandTracker
+from app.utils.data_processing import DataProcessor
+from app.legacy.data_collector import DataCollector
 import numpy as np
 
 # Configuración

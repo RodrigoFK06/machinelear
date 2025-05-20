@@ -4,8 +4,8 @@ import numpy as np
 import tensorflow as tf
 import pickle
 import pyttsx3
-from detection.hand_tracking import HandTracker
-from preprocessing.data_processing import DataProcessor
+from app.utils.hand_tracking import HandTracker
+from app.utils.data_processing import DataProcessor
 
 # Inicializar voz
 engine = pyttsx3.init()

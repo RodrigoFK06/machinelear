@@ -10,10 +10,10 @@ import csv
 from datetime import datetime
 from collections import defaultdict
 
-from detection.hand_tracking import HandTracker
-from preprocessing.data_processing import DataProcessor
-from utils.sequence_recorder import SequenceRecorder
-from utils.segment_analyzer import analizar_error
+from app.utils.hand_tracking import HandTracker
+from app.utils.data_processing import DataProcessor
+from app.legacy.sequence_recorder import SequenceRecorder
+from app.legacy.segment_analyzer import analizar_error
 
 PREDICTION_COOLDOWN = 2
 GRABACION_DURACION = 3

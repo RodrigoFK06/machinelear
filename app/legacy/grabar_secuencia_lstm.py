@@ -1,10 +1,9 @@
 import cv2
-import numpy as np
 import time
 import os
-from detection.hand_tracking import HandTracker
-from preprocessing.data_processing import DataProcessor
-from utils.data_collector import DataCollector
+from app.utils.hand_tracking import HandTracker
+from app.utils.data_processing import DataProcessor
+from app.legacy.data_collector import DataCollector
 
 SEQUENCE_DURATION = 3.5
 FPS = 10
