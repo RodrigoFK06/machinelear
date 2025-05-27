@@ -69,16 +69,14 @@ async def get_daily_activity(
                 record_timestamp = datetime.fromtimestamp(0, tz=timezone.utc)
 
 
-            activity_records.append(
-                DailyActivityRecord(
-                    _id=str(doc.get("_id")),
-                    timestamp=record_timestamp,
-                    predicted_label=doc.get("predicted_label", "N/A"),
-                    expected_label=doc.get("expected_label", "N/A"),
-                    confidence=doc.get("confidence", 0.0),
-                    evaluation=evaluation if evaluation else "N/A"
-                )
-            )
+            # Prepare the document for Pydantic model instantiation, ensuring aliasing works
+            doc["_id"] = str(doc.get("_id")) # Convert ObjectId to string, key remains "_id"
+            
+            # Ensure all fields expected by DailyActivityRecord are present or have defaults
+            # Pydantic will map doc["_id"] to DailyActivityRecord.id due to the alias.
+            # Other fields in doc that match DailyActivityRecord fields will also be mapped.
+            # If extra fields exist in doc, they will be ignored by default unless model config forbids it.
+            activity_records.append(DailyActivityRecord(**doc))
 
         if total_practices == 0:
             logger.info("No activity found for user '%s' on date '%s'", nickname, date_str)

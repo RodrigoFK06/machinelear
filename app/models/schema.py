@@ -69,7 +69,7 @@ class ProgressItem(BaseModel):
 
 
 class DailyActivityRecord(BaseModel):
-    _id: str = Field(..., description="ID del registro (MongoDB ObjectId como string)", example="60d5ecf0c5f4a9c7b4f6b3e1")
+    id: str = Field(..., alias="_id", description="El ID del registro de MongoDB", example="60d5ec49f0b2f3a1c4d4a9c1")
     timestamp: datetime = Field(..., description="Fecha y hora completa del registro de la práctica", example="2023-10-26T10:30:00.123Z")
     predicted_label: str = Field(..., description="Etiqueta predicha por el modelo", example="dolor_de_cabeza")
     expected_label: str = Field(..., description="Etiqueta esperada por el usuario", example="dolor_de_cabeza")
