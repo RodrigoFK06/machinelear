@@ -19,3 +19,11 @@ app.add_middleware(
 
 # Montar las rutas del API
 app.include_router(api_router)
+
+@app.get("/health", tags=["Health Check"])
+async def health_check():
+    """
+    Simple health check endpoint.
+    Returns a status of "ok" if the application is running.
+    """
+    return {"status": "ok"}

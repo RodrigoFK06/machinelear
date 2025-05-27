@@ -36,6 +36,7 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
     # Guardar predicción en MongoDB (incluye nickname si lo hay)
     # TODO: AUTHENTICATION - Replace data.nickname with user ID from a proper authentication system.
     # The user's identity should be determined from an auth token rather than a nickname in the request body.
+    # TODO: CLARIFY - Confirm if full sequence data (35x42 floats) needs to be stored in MongoDB, or if 'sequence_shape' is sufficient.
     registro = {
         "nickname": data.nickname,  # 👈 Se agrega aquí
         "sequence_shape": sequence.shape,
