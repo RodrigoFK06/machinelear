@@ -1,3 +1,4 @@
+# TODO: TESTS - Add unit tests for Pydantic model validators, especially for PredictRequest sequence and label validation.
 from pydantic import BaseModel, Field, validator
 from typing import List, Optional
 from datetime import datetime
@@ -16,32 +17,36 @@ def load_labels():
 VALID_LABELS = load_labels()
 
 class PredictRequest(BaseModel):
-    sequence: List[List[float]] = Field(..., example=[[0.1] * 42] * 35)
-    expected_label: str = Field(..., example="tengo_fiebre_y_tos")
-    nickname: Optional[str] = Field(None, example="usuario123")
+    sequence: List[List[float]] = Field(..., example=[[0.1] * 42] * 35, description="Sequence of keypoints, typically 35 frames with 42 keypoints each.")
+    expected_label: str = Field(..., example="tengo_fiebre_y_tos", description="The expected medical sign label for this sequence.")
+    nickname: Optional[str] = Field(None, example="usuario123", description="Optional user's nickname for tracking purposes.")
 
     @validator("sequence")
     def validate_sequence(cls, value):
         if len(value) < 30:
-            raise ValueError("La secuencia debe tener al menos 30 frames.")
+            raise ValueError(f"La secuencia debe tener al menos 30 frames, pero se recibieron {len(value)}.")
         for frame in value:
             if len(frame) != 42:
-                raise ValueError("Cada frame debe tener exactamente 42 valores (keypoints).")
+                raise ValueError(f"Cada frame en la secuencia debe tener exactamente 42 valores (keypoints), pero se encontró un frame con {len(frame)} valores.")
+            for val in frame:
+                if not isinstance(val, float):
+                    raise ValueError("Todos los valores en los frames de la secuencia deben ser números de punto flotante.")
         return value
 
     @validator("expected_label")
     def validate_label(cls, value):
         if value not in VALID_LABELS:
-            raise ValueError(f"La etiqueta '{value}' no es válida. Usa una de: {VALID_LABELS}")
+            # Consider logging VALID_LABELS or providing a separate endpoint for debugging.
+            raise ValueError(f"La etiqueta '{value}' no es válida. Por favor, use una etiqueta conocida.")
         return value
 
 class PredictResponse(BaseModel):
-    predicted_label: str
-    confidence: float
-    evaluation: str  # "CORRECTO", "DUDOSO", "INCORRECTO"
-    observation: Optional[str] = None
-    success_rate: Optional[float] = None
-    average_confidence: Optional[float] = None
+    predicted_label: str = Field(..., description="La etiqueta predicha por el modelo.", example="dolor_de_cabeza")
+    confidence: float = Field(..., description="La confianza de la predicción, en porcentaje (0-100).", example=95.5)
+    evaluation: str = Field(..., description="Evaluación de la predicción (CORRECTO, DUDOSO, INCORRECTO).", example="CORRECTO") # "CORRECTO", "DUDOSO", "INCORRECTO"
+    observation: Optional[str] = Field(None, description="Observación adicional, especialmente si la evaluación es INCORRECTO (puede incluir sugerencias).", example="Intenta separar más los movimientos.")
+    success_rate: Optional[float] = Field(None, description="Tasa de éxito histórica para la etiqueta esperada (y usuario, si se proporcionó), en porcentaje.", example=75.0)
+    average_confidence: Optional[float] = Field(None, description="Confianza promedio histórica para la etiqueta esperada (y usuario, si se proporcionó), en porcentaje.", example=82.3)
 
 
 class ProgressItem(BaseModel):
@@ -61,3 +66,37 @@ class ProgressItem(BaseModel):
 
     last_attempt: Optional[datetime] = Field(None, example="2025-05-20T22:32:10.123Z",
                                              description="Fecha del último intento")
+
+
+class DailyActivityRecord(BaseModel):
+    _id: str = Field(..., description="ID del registro (MongoDB ObjectId como string)", example="60d5ecf0c5f4a9c7b4f6b3e1")
+    timestamp: datetime = Field(..., description="Fecha y hora completa del registro de la práctica", example="2023-10-26T10:30:00.123Z")
+    predicted_label: str = Field(..., description="Etiqueta predicha por el modelo", example="dolor_de_cabeza")
+    expected_label: str = Field(..., description="Etiqueta esperada por el usuario", example="dolor_de_cabeza")
+    confidence: float = Field(..., description="Confianza de la predicción (0-100)", example=92.75)
+    evaluation: str = Field(..., description="Evaluación de la práctica (CORRECTO, DUDOSO, INCORRECTO)", example="CORRECTO")
+
+
+class DailyActivitySummary(BaseModel):
+    total_practices: int = Field(..., description="Número total de prácticas realizadas en el día", example=25)
+    correct_practices: int = Field(..., description="Número de prácticas evaluadas como 'CORRECTO'", example=18)
+    doubtful_practices: int = Field(..., description="Número de prácticas evaluadas como 'DUDOSO'", example=5)
+    incorrect_practices: int = Field(..., description="Número de prácticas evaluadas como 'INCORRECTO'", example=2)
+
+
+class DailyActivityResponse(BaseModel):
+    nickname: str = Field(..., description="Nickname del usuario", example="usuario_activo_123")
+    date: str = Field(..., description="Fecha de la actividad solicitada, en formato YYYY-MM-DD", example="2023-10-26")
+    summary: DailyActivitySummary = Field(..., description="Resumen de la actividad del día")
+    records: List[DailyActivityRecord] = Field(..., description="Lista de registros de actividad para el día")
+
+
+class GlobalResultDistributionItem(BaseModel):
+    evaluation_type: str = Field(..., description="Type of evaluation (e.g., CORRECTO, DUDOSO, INCORRECTO)", example="CORRECTO")
+    count: int = Field(..., description="Total count for this evaluation type", example=1500)
+    percentage: float = Field(..., description="Percentage of this evaluation type out of the total evaluations", example=75.0)
+
+
+class GlobalResultsDistributionResponse(BaseModel):
+    total_evaluations: int = Field(..., description="Total number of evaluations processed in the system", example=2000)
+    distribution: List[GlobalResultDistributionItem] = Field(..., description="List of counts and percentages per evaluation type")
