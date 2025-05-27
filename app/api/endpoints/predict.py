@@ -4,7 +4,11 @@ from app.services.predictor import predict_sequence  # Ya guarda en MongoDB inte
 
 router = APIRouter()
 
-@router.post("/predict", response_model=PredictResponse)
+@router.post("/predict",
+             response_model=PredictResponse,
+             summary="Predict a medical sign from a sequence of keypoints",
+             description="Receives a sequence of keypoints representing a medical sign, processes it, and returns the predicted sign label, confidence, and evaluation. The prediction record is saved to the database."
+             )
 async def predict(request: PredictRequest):
     try:
         return await predict_sequence(request)

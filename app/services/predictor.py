@@ -9,6 +9,7 @@ from typing import Optional
 # Umbral mínimo para considerar una predicción como confiable
 UMBRAL_CONFIANZA = 75.0
 
+# TODO: TESTS - Add unit tests for predict_sequence, mocking the ML model and database interactions, to verify evaluation logic and statistics calculation.
 async def predict_sequence(data: PredictRequest) -> PredictResponse:
     sequence = np.array(data.sequence)
 
@@ -33,6 +34,8 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
         observation = analizar_error(sequence, dataset_path, data.expected_label)
 
     # Guardar predicción en MongoDB (incluye nickname si lo hay)
+    # TODO: AUTHENTICATION - Replace data.nickname with user ID from a proper authentication system.
+    # The user's identity should be determined from an auth token rather than a nickname in the request body.
     registro = {
         "nickname": data.nickname,  # 👈 Se agrega aquí
         "sequence_shape": sequence.shape,
@@ -45,8 +48,13 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
     }
     await collection.insert_one(registro)
 
+    # TODO: Consider optimizing statistics calculation. Currently, it queries all matching records on every prediction,
+    # which could become a performance bottleneck. Strategies could include using aggregation pipelines for direct
+    # calculation in the DB, or maintaining/updating statistics in a separate summary collection.
     # Cálculo de estadísticas globales reales desde MongoDB
     filtro = {"expected_label": data.expected_label}
+    # TODO: AUTHENTICATION - Replace data.nickname with user ID from a proper authentication system.
+    # The user's identity should be determined from an auth token rather than a nickname in the request body.
     if data.nickname:
         filtro["nickname"] = data.nickname  # 👈 Se filtra por usuario si lo proporciona
 
