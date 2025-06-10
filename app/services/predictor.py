@@ -1,9 +1,10 @@
 import numpy as np
 from datetime import datetime
 from app.services.model_loader import model, encoder
+from app.services.evaluator import evaluate_prediction
 from app.services.feedback_analyzer import analizar_error
 from app.models.schema import PredictRequest, PredictResponse
-from app.db.mongodb import collection  # ✅ MongoDB async
+from app.db.mongodb import collection, stats_collection
 from typing import Optional
 
 # Umbral mínimo para considerar una predicción como confiable
@@ -22,10 +23,9 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
     predicted_label = encoder.inverse_transform([class_index])[0]
 
     # Evaluación según confianza y etiqueta esperada
-    if predicted_label.lower() == data.expected_label.lower():
-        evaluation = "CORRECTO" if confidence >= UMBRAL_CONFIANZA else "DUDOSO"
-    else:
-        evaluation = "INCORRECTO"
+    evaluation, correct = evaluate_prediction(
+        predicted_label, data.expected_label, confidence, UMBRAL_CONFIANZA
+    )
 
     # Feedback adicional si es incorrecto
     observation = None
@@ -49,26 +49,24 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
     }
     await collection.insert_one(registro)
 
-    # TODO: Consider optimizing statistics calculation. Currently, it queries all matching records on every prediction,
-    # which could become a performance bottleneck. Strategies could include using aggregation pipelines for direct
-    # calculation in the DB, or maintaining/updating statistics in a separate summary collection.
-    # Cálculo de estadísticas globales reales desde MongoDB
-    filtro = {"expected_label": data.expected_label}
-    # TODO: AUTHENTICATION - Replace data.nickname with user ID from a proper authentication system.
-    # The user's identity should be determined from an auth token rather than a nickname in the request body.
-    if data.nickname:
-        filtro["nickname"] = data.nickname  # 👈 Se filtra por usuario si lo proporciona
+    # Mantener estadísticas acumuladas en una colección separada para evitar
+    # recorrer todos los documentos en cada predicción.
+    stats_filter = {"expected_label": data.expected_label, "nickname": data.nickname}
+    update = {
+        "$inc": {
+            "total": 1,
+            "correct": 1 if correct else 0,
+            "confidence_sum": confidence,
+        }
+    }
+    await stats_collection.update_one(stats_filter, update, upsert=True)
+    stats_doc = await stats_collection.find_one(stats_filter)
+    total = stats_doc.get("total", 0)
+    correct_count = stats_doc.get("correct", 0)
+    confidence_sum = stats_doc.get("confidence_sum", 0.0)
 
-    cursor = collection.find(filtro)
-    intentos, aciertos, suma_confianza = 0, 0, 0.0
-    async for doc in cursor:
-        intentos += 1
-        suma_confianza += doc.get("confidence", 0.0)
-        if doc.get("evaluation") == "CORRECTO":
-            aciertos += 1
-
-    success_rate = (aciertos / intentos) * 100 if intentos else None
-    average_confidence = (suma_confianza / intentos) if intentos else None
+    success_rate = (correct_count / total) * 100 if total else None
+    average_confidence = (confidence_sum / total) if total else None
 
     return PredictResponse(
         predicted_label=predicted_label,

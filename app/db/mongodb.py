@@ -15,8 +15,10 @@ if not MONGO_URI:
 # Definir nombre de base de datos y colección
 MONGO_DB = "sign_language"
 MONGO_COLLECTION = "predictions"
+MONGO_STATS_COLLECTION = "prediction_stats"
 
 # Cliente y conexión
 client = AsyncIOMotorClient(MONGO_URI)
 db = client[MONGO_DB]
 collection = db[MONGO_COLLECTION]
+stats_collection = db[MONGO_STATS_COLLECTION]

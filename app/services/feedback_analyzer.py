@@ -40,6 +40,19 @@ def distancia_segmento(secuencia_usuario: np.ndarray, referencias: list) -> list
     return resultados
 
 def analizar_error(secuencia_usuario: np.ndarray, dataset_csv: str, nombre_sena: str) -> str:
+    """Return a brief feedback message indicating in which segment the
+    sequence differs most from the reference examples for ``nombre_sena``.
+
+    Parameters
+    ----------
+    secuencia_usuario: np.ndarray
+        Secuencia de entrada del usuario con forma ``(35, 42)``.
+    dataset_csv: str
+        Ruta al dataset CSV con todas las secuencias etiquetadas.
+    nombre_sena: str
+        Etiqueta esperada de la seña.
+    """
+
     ref_data = cargar_referencias(dataset_csv, nombre_sena)
     if ref_data is None:
         return "No hay datos de referencia para esa seña."
@@ -48,55 +61,6 @@ def analizar_error(secuencia_usuario: np.ndarray, dataset_csv: str, nombre_sena:
     dists = distancia_segmento(secuencia_usuario, refs)
     secciones = ["inicial", "media", "final"]
     indice = np.argmax(dists)
-    return f"Observación: El error ocurrió principalmente en la parte {secciones[indice]}."
-
-
-# app/services/predictor.py
-import numpy as np
-from app.services.model_loader import model, encoder
-from app.services.feedback_analyzer import analizar_error
-from app.models.schema import PredictRequest, PredictResponse
-
-UMBRAL_CONFIANZA = 75.0
-estadisticas_globales = {}
-
-def predict_sequence(data: PredictRequest) -> PredictResponse:
-    sequence = np.array(data.sequence)
-
-    if sequence.shape != (35, 42):
-        raise ValueError("La secuencia debe tener forma (35, 42)")
-
-    prediction = model.predict(np.array([sequence]), verbose=0)
-    class_index = np.argmax(prediction)
-    confidence = float(prediction[0][class_index]) * 100
-    predicted_label = encoder.inverse_transform([class_index])[0]
-
-    if predicted_label.lower() == data.expected_label.lower():
-        evaluation = "CORRECTO" if confidence >= UMBRAL_CONFIANZA else "DUDOSO"
-    else:
-        evaluation = "INCORRECTO"
-
-    est = estadisticas_globales.setdefault(data.expected_label, {
-        "intentos": 0, "aciertos": 0, "confianza_total": 0
-    })
-    est["intentos"] += 1
-    if evaluation == "CORRECTO":
-        est["aciertos"] += 1
-    est["confianza_total"] += confidence
-
-    success_rate = (est["aciertos"] / est["intentos"] * 100) if est["intentos"] else None
-    average_confidence = (est["confianza_total"] / est["intentos"]) if est["intentos"] else None
-
-    observation = None
-    if evaluation == "INCORRECTO":
-        dataset_path = "app/legacy/dataset_medico.csv"
-        observation = analizar_error(sequence, dataset_path, data.expected_label)
-
-    return PredictResponse(
-        predicted_label=predicted_label,
-        confidence=confidence,
-        evaluation=evaluation,
-        observation=observation,
-        success_rate=success_rate,
-        average_confidence=average_confidence
+    return (
+        f"Observación: El error ocurrió principalmente en la parte {secciones[indice]}."
     )
