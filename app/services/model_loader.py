@@ -4,9 +4,9 @@ import tensorflow as tf
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Leer rutas desde variables de entorno, con valores por defecto en /models
+# Leer rutas desde variables de entorno, con valores por defecto para .h5 y .pkl
 MODEL_PATH = os.getenv(
-    "MODEL_PATH", os.path.join(BASE_DIR, "models", "lstm_gestos_model.keras")
+    "MODEL_PATH", os.path.join(BASE_DIR, "models", "lstm_gestos_model.h5")
 )
 ENCODER_PATH = os.getenv(
     "ENCODER_PATH", os.path.join(BASE_DIR, "models", "label_encoder_lstm.pkl")
@@ -16,7 +16,7 @@ ENCODER_PATH = os.getenv(
 if not os.path.exists(MODEL_PATH):
     raise OSError(
         f"Model file not found at {MODEL_PATH}. Configure MODEL_PATH or place "
-        "lstm_gestos_model.keras in the models/ folder."
+        "lstm_gestos_model.h5 in the models/ folder."
     )
 
 if not os.path.exists(ENCODER_PATH):

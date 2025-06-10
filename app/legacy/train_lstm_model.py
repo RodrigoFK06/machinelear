@@ -45,27 +45,39 @@ with open(encoder_path, "wb") as f:
 # Dividir en train y test
 X_train, X_test, y_train, y_test = train_test_split(X, y_categorical, test_size=0.2, random_state=42)
 
-# Crear modelo LSTM
+# Definición del modelo sin InputLayer explícito
 model = models.Sequential([
-    layers.Input(shape=(SEQUENCE_LENGTH, FEATURES)),
-    layers.LSTM(64, return_sequences=False),
+    # La primera capa LSTM incluye input_shape directamente
+    layers.LSTM(64, return_sequences=False, input_shape=(SEQUENCE_LENGTH, FEATURES)),
     layers.Dense(32, activation='relu'),
+    layers.Dropout(0.2),  # Opcional: para regularización
     layers.Dense(len(encoder.classes_), activation='softmax')
 ])
 
-model.compile(optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"])
-model.summary()
+# Compilación
+model.compile(
+    optimizer='adam',
+    loss='categorical_crossentropy',
+    metrics=['accuracy']
+)
 
-# Entrenar
-model.fit(X_train, y_train, epochs=30, batch_size=16, validation_split=0.2, verbose=1)
+# Entrenamiento
+model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
-# Evaluar
-loss, acc = model.evaluate(X_test, y_test)
-print(f"✅ Precisión: {acc * 100:.2f}%")
+# Guardado compatible
+model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.h5")
+model.save(model_path, save_format="h5")
 
-# Guardar modelo en formato moderno .keras
-model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.keras")
-model.save(model_path, save_format="keras")
-print(f"✅ Modelo LSTM guardado en: {model_path}")
-print(f"✅ Codificador guardado en: {encoder_path}")
-print("🎯 Etiquetas:", list(encoder.classes_))
+# Alternativa: SavedModel format (más robusto)
+# model_dir = os.path.join(MODELS_DIR, "lstm_gestos_model")
+# model.save(model_dir, save_format="tf")
+
+print(f"Modelo guardado en: {model_path}")
+
+# Verificación de carga (para testing)
+try:
+    loaded_model = tf.keras.models.load_model(model_path)
+    print("✅ Modelo cargado exitosamente")
+    print(f"Input shape: {loaded_model.input_shape}")
+except Exception as e:
+    print(f"❌ Error al cargar: {e}")
