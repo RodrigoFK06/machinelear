@@ -1,41 +1,50 @@
 # Medical Sign Recognition API
 
-This project provides a FastAPI backend that predicts medical sign language from hand keypoint sequences using a TensorFlow model. Predictions and statistics are stored in MongoDB.
+Este backend en **FastAPI** provee servicios de reconocimiento de señas médicas mediante un modelo LSTM entrenado con secuencias de puntos clave de las manos. Está pensado para integrarse con aplicaciones web o móviles que capturen gestos en tiempo real y necesiten obtener una predicción inmediata junto con métricas de rendimiento.
 
-## Setup
+## Tabla de contenidos
+- [Instalación](#instalación)
+- [Entrenamiento del modelo](#entrenamiento-del-modelo)
+- [Estructura de las secuencias](#estructura-de-las-secuencias)
+- [Uso de la API](#uso-de-la-api)
+  - [/predict](#post-predict)
+  - [/labels](#get-labels)
+  - [/records](#get-records)
+  - [/progress](#get-progress)
+  - [/activity/daily](#get-activitydailynicknamedate)
+  - [/stats/global_distribution](#get-statsglobal_distribution)
+- [Integración desde frontend](#integración-desde-frontend)
+- [Pruebas automatizadas](#pruebas-automatizadas)
+- [Colección Postman](#colección-postman)
 
-1. Create a `.env` file based on `.env.example` with your MongoDB connection string.
-2. Install dependencies:
+## Instalación
+
+1. Clona el repositorio y crea un entorno virtual de Python 3.11 o superior.
+2. Copia `.env.example` a `.env` y ajusta la variable `MONGO_URI` con tu instancia de MongoDB.
+3. Instala las dependencias necesarias:
    ```bash
    pip install -r requirements.txt
    ```
-3. Run the application:
+4. Ejecuta el servidor en modo desarrollo:
    ```bash
    uvicorn app.main:app --reload
    ```
 
-## Tests
+## Entrenamiento del modelo
 
-Run the unit tests with:
+El script `app/legacy/train_lstm_model.py` permite entrenar el modelo LSTM a partir del archivo `dataset_medico.csv` (35×42 características por frame). Al finalizar se guarda `lstm_gestos_model.h5` y el codificador de etiquetas `label_encoder_lstm.pkl` que son cargados automáticamente por la API.
+
+Para lanzar el entrenamiento:
 ```bash
-pytest -q
+python app/legacy/train_lstm_model.py
 ```
+Asegúrate de que `dataset_medico.csv` esté limpio y estructurado correctamente (la última columna debe contener la etiqueta de la seña).
 
-## API Usage
+## Estructura de las secuencias
 
-This section shows how to interact with the main endpoints using `curl`. No authentication is required in the current version. Replace `localhost:8000` with your host if running on a different machine.
+Las predicciones se realizan con secuencias de **35 frames**, cada frame compuesto por **42 valores flotantes** que representan los puntos clave normalizados de ambas manos. El frontend puede obtener estos puntos con librerías como [MediaPipe](https://developers.google.com/mediapipe) o TensorFlow.js.
 
-### POST /predict
-Predict a sign sequence.
-
-**URL**: `/predict`
-
-**Method**: `POST`
-
-**Headers**:
-- `Content-Type: application/json`
-
-**Body example**:
+Ejemplo de cuerpo JSON:
 ```json
 {
   "sequence": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, 4.2], ... 35 frames],
@@ -44,7 +53,26 @@ Predict a sign sequence.
 }
 ```
 
-**Success response**:
+`expected_label` debe pertenecer a la lista devuelta por `/labels`. `nickname` es opcional y se utiliza únicamente para generar estadísticas por usuario (en el futuro será reemplazado por autenticación JWT).
+
+## Uso de la API
+
+Todas las rutas están prefijadas en la raíz. No se requiere token de autorización en esta versión. Reemplaza `localhost:8000` con tu host si ejecutas en una máquina diferente.
+
+### POST `/predict`
+
+Predice una secuencia de señas médicas.
+
+**URL**: `/predict`
+
+**Método**: `POST`
+
+**Headers**: 
+- `Content-Type: application/json`
+
+**Body**: estructura descrita en [Estructura de las secuencias](#estructura-de-las-secuencias)
+
+**Respuesta exitosa**:
 ```json
 {
   "predicted_label": "dolor_de_cabeza",
@@ -56,45 +84,47 @@ Predict a sign sequence.
 }
 ```
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d @data/predict_example.json
 ```
 
-Possible errors: `400` invalid input, `500` server error.
+**Códigos de error**: `400` entrada inválida, `500` error interno.
 
-### GET /labels
-Retrieve all trained labels.
+### GET `/labels`
+
+Devuelve la lista de etiquetas disponibles en el dataset.
 
 **URL**: `/labels`
 
-**Method**: `GET`
+**Método**: `GET`
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl http://localhost:8000/labels
 ```
 
-Possible errors: `404` if the dataset is missing, `500` on read error.
+**Códigos de error**: `404` dataset no encontrado, `500` error de lectura.
 
-### GET /records
-List prediction records with optional filters.
+### GET `/records`
+
+Permite consultar registros de predicción con filtros opcionales.
 
 **URL**: `/records`
 
-**Method**: `GET`
+**Método**: `GET`
 
-**Query parameters**:
-- `nickname` – filter by user nickname
-- `date_from` – ISO start date (e.g., `2025-01-01T00:00:00Z`)
-- `date_to` – ISO end date
-- `evaluation` – `CORRECTO`, `DUDOSO` or `INCORRECTO`
-- `skip` – records to skip (pagination)
-- `limit` – max records to return (1‑100)
+**Parámetros de consulta**:
+- `nickname` – filtrar por nickname de usuario
+- `date_from` – fecha de inicio ISO (ej., `2025-01-01T00:00:00Z`)
+- `date_to` – fecha de fin ISO
+- `evaluation` – `CORRECTO`, `DUDOSO` o `INCORRECTO`
+- `skip` – registros a omitir (paginación)
+- `limit` – máximo de registros a devolver (1‑100)
 
-**Sample response**:
+**Respuesta de ejemplo**:
 ```json
 [
   {
@@ -111,24 +141,27 @@ List prediction records with optional filters.
 ]
 ```
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl "http://localhost:8000/records?nickname=usuario123&limit=5"
 ```
 
-Possible errors: `500` database query errors.
+La cabecera `X-Total-Count` indica el número total de coincidencias.
 
-### GET /progress
-Aggregated progress per label.
+**Códigos de error**: `500` errores de consulta en base de datos.
+
+### GET `/progress`
+
+Devuelve estadísticas agregadas por etiqueta y, opcionalmente, por usuario si se especifica `nickname`.
 
 **URL**: `/progress`
 
-**Method**: `GET`
+**Método**: `GET`
 
-**Query parameters**:
-- `nickname` – optional user nickname
+**Parámetros de consulta**:
+- `nickname` – nickname de usuario opcional
 
-**Sample response**:
+**Respuesta de ejemplo**:
 ```json
 [
   {
@@ -148,21 +181,22 @@ Aggregated progress per label.
 ]
 ```
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl "http://localhost:8000/progress?nickname=usuario123"
 ```
 
-Possible errors: `500` server error.
+**Códigos de error**: `500` error del servidor.
 
-### GET /activity/daily/{nickname}/{date}
-Daily activity for a user. `date` must use `YYYY-MM-DD` format.
+### GET `/activity/daily/{nickname}/{date}`
+
+Entrega el detalle de prácticas de un usuario en un día específico. El formato de fecha debe ser `YYYY-MM-DD`.
 
 **URL**: `/activity/daily/{nickname}/{date}`
 
-**Method**: `GET`
+**Método**: `GET`
 
-**Sample response**:
+**Respuesta de ejemplo**:
 ```json
 {
   "nickname": "usuario123",
@@ -186,21 +220,22 @@ Daily activity for a user. `date` must use `YYYY-MM-DD` format.
 }
 ```
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl http://localhost:8000/activity/daily/usuario123/2025-05-20
 ```
 
-Possible errors: `400` for invalid date format, `500` on database error.
+**Códigos de error**: `400` formato de fecha inválido, `500` error de base de datos.
 
-### GET /stats/global_distribution
-Get overall result distribution.
+### GET `/stats/global_distribution`
+
+Muestra la distribución global de evaluaciones (CORRECTO, DUDOSO, INCORRECTO).
 
 **URL**: `/stats/global_distribution`
 
-**Method**: `GET`
+**Método**: `GET`
 
-**Sample response**:
+**Respuesta de ejemplo**:
 ```json
 {
   "total_evaluations": 2000,
@@ -212,11 +247,55 @@ Get overall result distribution.
 }
 ```
 
-Example request:
+**Ejemplo con cURL**:
 ```bash
 curl http://localhost:8000/stats/global_distribution
 ```
 
-Possible errors: `500` server error.
+**Códigos de error**: `500` error del servidor.
 
-For quick testing you can import the endpoints into tools like Postman or Insomnia by creating requests with the examples above.
+## Integración desde frontend
+
+1. Captura los puntos clave de ambas manos con MediaPipe o TensorFlow.js.
+2. Normaliza los valores de cada frame entre 0 y 1 y construye un arreglo de 35×42.
+3. Envía la secuencia al endpoint `/predict` en formato JSON como se mostró anteriormente.
+4. Utiliza la respuesta para mostrar la etiqueta predicha y la confianza al usuario. Guarda también la evaluación para generar métricas locales si lo deseas.
+
+Aunque actualmente se usa el campo `nickname`, se recomienda planificar un flujo de autenticación con JWT para identificar al usuario y registrar su progreso de manera segura.
+
+### Ejemplo en React (fetch)
+```javascript
+const body = { sequence, expected_label: "dolor_de_cabeza", nickname: "demo" };
+fetch("http://localhost:8000/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+}).then(res => res.json()).then(console.log);
+```
+
+### Ejemplo en Flutter (http)
+```dart
+final response = await http.post(
+  Uri.parse('http://localhost:8000/predict'),
+  headers: {'Content-Type': 'application/json'},
+  body: jsonEncode({
+    'sequence': sequence,
+    'expected_label': 'dolor_de_cabeza',
+    'nickname': 'demo'
+  }),
+);
+```
+
+## Pruebas automatizadas
+
+El repositorio incluye pruebas unitarias con **pytest**. Para ejecutarlas:
+```bash
+pytest -q
+```
+Los tests utilizan stubs para evitar dependencias reales de TensorFlow y MongoDB, por lo que pueden correr sin configurar servicios externos.
+
+## Colección Postman
+
+Puedes importar los endpoints en Postman utilizando la siguiente colección de ejemplo: [`postman_collection.json`](postman_collection.json). Si prefieres otras herramientas como Insomnia o Hoppscotch, basta con replicar las peticiones `curl` mostradas en cada endpoint.
+
+Para pruebas rápidas también puedes crear las solicitudes manualmente utilizando los ejemplos de cURL proporcionados en cada sección.
