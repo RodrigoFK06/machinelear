@@ -63,9 +63,9 @@ model.fit(X_train, y_train, epochs=30, batch_size=16, validation_split=0.2, verb
 loss, acc = model.evaluate(X_test, y_test)
 print(f"✅ Precisión: {acc * 100:.2f}%")
 
-# Guardar modelo
-model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.h5")
-model.save(model_path)
+# Guardar modelo en formato moderno .keras
+model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.keras")
+model.save(model_path, save_format="keras")
 print(f"✅ Modelo LSTM guardado en: {model_path}")
 print(f"✅ Codificador guardado en: {encoder_path}")
 print("🎯 Etiquetas:", list(encoder.classes_))
