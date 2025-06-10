@@ -20,7 +20,10 @@ Este backend en **FastAPI** provee servicios de reconocimiento de señas médica
 ## Instalación
 
 1. Clona el repositorio y crea un entorno virtual de Python 3.11 o superior.
-2. Copia `.env.example` a `.env` y ajusta la variable `MONGO_URI` con tu instancia de MongoDB.
+2. Copia `.env.example` a `.env` y ajusta las variables:
+   - `MONGO_URI` con tu instancia de MongoDB
+   - `MODEL_PATH` ruta al archivo `lstm_gestos_model.h5`
+   - `ENCODER_PATH` ruta al archivo `label_encoder_lstm.pkl`
 3. Instala las dependencias necesarias:
    ```bash
    pip install -r requirements.txt

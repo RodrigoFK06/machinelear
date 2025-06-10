@@ -11,7 +11,9 @@ from tensorflow.keras.utils import to_categorical
 
 # Configuración
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CSV_PATH = os.path.join(BASE_DIR, "dataset_medico.csv")
+CSV_PATH = os.path.join(os.path.dirname(__file__), "dataset_medico.csv")
+MODELS_DIR = os.path.join(BASE_DIR, "models")
+os.makedirs(MODELS_DIR, exist_ok=True)
 
 # Cargar el dataset
 df = pd.read_csv(CSV_PATH, header=None)
@@ -36,7 +38,8 @@ y_encoded = encoder.fit_transform(y)
 y_categorical = to_categorical(y_encoded)
 
 # Guardar el encoder
-with open(os.path.join(BASE_DIR, "label_encoder_lstm.pkl"), "wb") as f:
+encoder_path = os.path.join(MODELS_DIR, "label_encoder_lstm.pkl")
+with open(encoder_path, "wb") as f:
     pickle.dump(encoder, f)
 
 # Dividir en train y test
@@ -61,7 +64,8 @@ loss, acc = model.evaluate(X_test, y_test)
 print(f"✅ Precisión: {acc * 100:.2f}%")
 
 # Guardar modelo
-model_path = os.path.join(BASE_DIR, "lstm_gestos_model.h5")
+model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.h5")
 model.save(model_path)
 print(f"✅ Modelo LSTM guardado en: {model_path}")
+print(f"✅ Codificador guardado en: {encoder_path}")
 print("🎯 Etiquetas:", list(encoder.classes_))
