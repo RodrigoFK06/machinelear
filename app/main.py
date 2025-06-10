@@ -8,10 +8,19 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS (puedes ajustar los orígenes según el frontend real)
+# ✅ CORS: define orígenes seguros para producción
+origins = [
+    "https://machinefrontend.vercel.app",  # frontend en Vercel (producción)
+    "http://localhost:3000",            # opcional: frontend en desarrollo local
+    "https://machinefrontend-git-main-rodrigofk06s-projects.vercel.app",
+    "https://machinefrontend.vercel.app/",  # frontend en Vercel (producción)
+    "http://localhost:3000/",            # opcional: frontend en desarrollo local
+    "https://machinefrontend-git-main-rodrigofk06s-projects.vercel.app/",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Cambiar por dominios específicos en producción
+    allow_origins=origins,        # restringe solo a dominios permitidos
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
