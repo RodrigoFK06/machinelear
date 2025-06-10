@@ -18,6 +18,7 @@ Este backend en **FastAPI** provee servicios de reconocimiento de señas médica
 - [Colección Postman](#colección-postman)
 
 ## Instalación
+
 1. Clona el repositorio y crea un entorno virtual de Python 3.11 o superior.
 2. Copia `.env.example` a `.env` y ajusta la variable `MONGO_URI` con tu instancia de MongoDB.
 3. Instala las dependencias necesarias:
@@ -30,6 +31,7 @@ Este backend en **FastAPI** provee servicios de reconocimiento de señas médica
    ```
 
 ## Entrenamiento del modelo
+
 El script `app/legacy/train_lstm_model.py` permite entrenar el modelo LSTM a partir del archivo `dataset_medico.csv` (35×42 características por frame). Al finalizar se guarda `lstm_gestos_model.h5` y el codificador de etiquetas `label_encoder_lstm.pkl` que son cargados automáticamente por la API.
 
 Para lanzar el entrenamiento:
@@ -39,81 +41,221 @@ python app/legacy/train_lstm_model.py
 Asegúrate de que `dataset_medico.csv` esté limpio y estructurado correctamente (la última columna debe contener la etiqueta de la seña).
 
 ## Estructura de las secuencias
+
 Las predicciones se realizan con secuencias de **35 frames**, cada frame compuesto por **42 valores flotantes** que representan los puntos clave normalizados de ambas manos. El frontend puede obtener estos puntos con librerías como [MediaPipe](https://developers.google.com/mediapipe) o TensorFlow.js.
 
 Ejemplo de cuerpo JSON:
 ```json
 {
-  "sequence": [[0.1, 0.2, ... 0.42], ... 35 frames],
+  "sequence": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, 4.2], ... 35 frames],
   "expected_label": "dolor_de_cabeza",
   "nickname": "usuario123"
 }
 ```
+
 `expected_label` debe pertenecer a la lista devuelta por `/labels`. `nickname` es opcional y se utiliza únicamente para generar estadísticas por usuario (en el futuro será reemplazado por autenticación JWT).
 
 ## Uso de la API
-Todas las rutas están prefijadas en la raíz. No se requiere token de autorización en esta versión.
+
+Todas las rutas están prefijadas en la raíz. No se requiere token de autorización en esta versión. Reemplaza `localhost:8000` con tu host si ejecutas en una máquina diferente.
 
 ### POST `/predict`
-- **Headers**: `Content-Type: application/json`
-- **Body**: estructura descrita en [Estructura de las secuencias](#estructura-de-las-secuencias)
-- **Respuesta exitosa**:
-  ```json
+
+Predice una secuencia de señas médicas.
+
+**URL**: `/predict`
+
+**Método**: `POST`
+
+**Headers**: 
+- `Content-Type: application/json`
+
+**Body**: estructura descrita en [Estructura de las secuencias](#estructura-de-las-secuencias)
+
+**Respuesta exitosa**:
+```json
+{
+  "predicted_label": "dolor_de_cabeza",
+  "confidence": 89.3,
+  "evaluation": "CORRECTO",
+  "observation": null,
+  "success_rate": 74.2,
+  "average_confidence": 82.9
+}
+```
+
+**Ejemplo con cURL**:
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d @data/predict_example.json
+```
+
+**Códigos de error**: `400` entrada inválida, `500` error interno.
+
+### GET `/labels`
+
+Devuelve la lista de etiquetas disponibles en el dataset.
+
+**URL**: `/labels`
+
+**Método**: `GET`
+
+**Ejemplo con cURL**:
+```bash
+curl http://localhost:8000/labels
+```
+
+**Códigos de error**: `404` dataset no encontrado, `500` error de lectura.
+
+### GET `/records`
+
+Permite consultar registros de predicción con filtros opcionales.
+
+**URL**: `/records`
+
+**Método**: `GET`
+
+**Parámetros de consulta**:
+- `nickname` – filtrar por nickname de usuario
+- `date_from` – fecha de inicio ISO (ej., `2025-01-01T00:00:00Z`)
+- `date_to` – fecha de fin ISO
+- `evaluation` – `CORRECTO`, `DUDOSO` o `INCORRECTO`
+- `skip` – registros a omitir (paginación)
+- `limit` – máximo de registros a devolver (1‑100)
+
+**Respuesta de ejemplo**:
+```json
+[
   {
+    "_id": "60d5ec49f0b2f3a1c4d4a9c1",
+    "nickname": "usuario123",
+    "sequence_shape": [35, 42],
     "predicted_label": "dolor_de_cabeza",
+    "expected_label": "dolor_de_cabeza",
     "confidence": 89.3,
     "evaluation": "CORRECTO",
     "observation": null,
-    "success_rate": 74.2,
-    "average_confidence": 82.9
+    "timestamp": "2025-05-20T22:32:10.123Z"
   }
-  ```
-- **Curl**:
-  ```bash
-  curl -X POST http://localhost:8000/predict \
-    -H "Content-Type: application/json" \
-    -d @data/predict_example.json
-  ```
-- **Códigos de error**: `400` entrada inválida, `500` error interno.
+]
+```
 
-### GET `/labels`
-- Devuelve la lista de etiquetas disponibles en el dataset.
-- **Curl**:
-  ```bash
-  curl http://localhost:8000/labels
-  ```
-- **Códigos de error**: `404` dataset no encontrado, `500` error de lectura.
+**Ejemplo con cURL**:
+```bash
+curl "http://localhost:8000/records?nickname=usuario123&limit=5"
+```
 
-### GET `/records`
-- Permite consultar registros de predicción filtrando por `nickname`, rango de fechas (`date_from`, `date_to`) y `evaluation`.
-- **Curl**:
-  ```bash
-  curl "http://localhost:8000/records?nickname=usuario123&limit=5"
-  ```
-- La cabecera `X-Total-Count` indica el número total de coincidencias.
+La cabecera `X-Total-Count` indica el número total de coincidencias.
+
+**Códigos de error**: `500` errores de consulta en base de datos.
 
 ### GET `/progress`
-- Devuelve estadísticas agregadas por etiqueta y, opcionalmente, por usuario si se especifica `nickname`.
-- **Curl**:
-  ```bash
-  curl "http://localhost:8000/progress?nickname=usuario123"
-  ```
+
+Devuelve estadísticas agregadas por etiqueta y, opcionalmente, por usuario si se especifica `nickname`.
+
+**URL**: `/progress`
+
+**Método**: `GET`
+
+**Parámetros de consulta**:
+- `nickname` – nickname de usuario opcional
+
+**Respuesta de ejemplo**:
+```json
+[
+  {
+    "label": "dolor_de_cabeza",
+    "total_attempts": 5,
+    "correct_attempts": 4,
+    "doubtful_attempts": 0,
+    "incorrect_attempts": 1,
+    "success_rate": 80.0,
+    "doubtful_rate": 0.0,
+    "incorrect_rate": 20.0,
+    "average_confidence": 85.4,
+    "max_confidence": 90.0,
+    "min_confidence": 70.0,
+    "last_attempt": "2025-05-20T22:32:10.123Z"
+  }
+]
+```
+
+**Ejemplo con cURL**:
+```bash
+curl "http://localhost:8000/progress?nickname=usuario123"
+```
+
+**Códigos de error**: `500` error del servidor.
 
 ### GET `/activity/daily/{nickname}/{date}`
-- Entrega el detalle de prácticas de un usuario en un día específico (formato de fecha `YYYY-MM-DD`).
-- **Curl**:
-  ```bash
-  curl http://localhost:8000/activity/daily/usuario123/2025-05-20
-  ```
+
+Entrega el detalle de prácticas de un usuario en un día específico. El formato de fecha debe ser `YYYY-MM-DD`.
+
+**URL**: `/activity/daily/{nickname}/{date}`
+
+**Método**: `GET`
+
+**Respuesta de ejemplo**:
+```json
+{
+  "nickname": "usuario123",
+  "date": "2025-05-20",
+  "summary": {
+    "total_practices": 3,
+    "correct_practices": 2,
+    "doubtful_practices": 1,
+    "incorrect_practices": 0
+  },
+  "records": [
+    {
+      "id": "60d5ec49f0b2f3a1c4d4a9c1",
+      "timestamp": "2025-05-20T10:00:00Z",
+      "predicted_label": "dolor_de_cabeza",
+      "expected_label": "dolor_de_cabeza",
+      "confidence": 90.5,
+      "evaluation": "CORRECTO"
+    }
+  ]
+}
+```
+
+**Ejemplo con cURL**:
+```bash
+curl http://localhost:8000/activity/daily/usuario123/2025-05-20
+```
+
+**Códigos de error**: `400` formato de fecha inválido, `500` error de base de datos.
 
 ### GET `/stats/global_distribution`
-- Muestra la distribución global de evaluaciones (CORRECTO, DUDOSO, INCORRECTO).
-- **Curl**:
-  ```bash
-  curl http://localhost:8000/stats/global_distribution
-  ```
+
+Muestra la distribución global de evaluaciones (CORRECTO, DUDOSO, INCORRECTO).
+
+**URL**: `/stats/global_distribution`
+
+**Método**: `GET`
+
+**Respuesta de ejemplo**:
+```json
+{
+  "total_evaluations": 2000,
+  "distribution": [
+    {"evaluation_type": "CORRECTO", "count": 1500, "percentage": 75.0},
+    {"evaluation_type": "DUDOSO", "count": 300, "percentage": 15.0},
+    {"evaluation_type": "INCORRECTO", "count": 200, "percentage": 10.0}
+  ]
+}
+```
+
+**Ejemplo con cURL**:
+```bash
+curl http://localhost:8000/stats/global_distribution
+```
+
+**Códigos de error**: `500` error del servidor.
 
 ## Integración desde frontend
+
 1. Captura los puntos clave de ambas manos con MediaPipe o TensorFlow.js.
 2. Normaliza los valores de cada frame entre 0 y 1 y construye un arreglo de 35×42.
 3. Envía la secuencia al endpoint `/predict` en formato JSON como se mostró anteriormente.
@@ -145,6 +287,7 @@ final response = await http.post(
 ```
 
 ## Pruebas automatizadas
+
 El repositorio incluye pruebas unitarias con **pytest**. Para ejecutarlas:
 ```bash
 pytest -q
@@ -152,6 +295,7 @@ pytest -q
 Los tests utilizan stubs para evitar dependencias reales de TensorFlow y MongoDB, por lo que pueden correr sin configurar servicios externos.
 
 ## Colección Postman
-Puedes importar los endpoints en Postman utilizando la siguiente colección de ejemplo: [`postman_collection.json`](postman_collection.json). Si prefieres otras herramientas como Insomnia o Hoppscotch, basta con replicar las peticiones `curl` mostradas.
 
+Puedes importar los endpoints en Postman utilizando la siguiente colección de ejemplo: [`postman_collection.json`](postman_collection.json). Si prefieres otras herramientas como Insomnia o Hoppscotch, basta con replicar las peticiones `curl` mostradas en cada endpoint.
 
+Para pruebas rápidas también puedes crear las solicitudes manualmente utilizando los ejemplos de cURL proporcionados en cada sección.
