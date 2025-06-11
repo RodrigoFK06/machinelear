@@ -46,6 +46,18 @@ python app/train_lstm_model.py
 python app/train_cnn_lstm_model.py
 ```
 
+Al finalizar cada entrenamiento se generan las curvas de pérdida en
+`models/loss_plot_lstm.png` o `models/loss_plot_cnn_lstm.png`.
+
+Para evaluar el modelo CNN+LSTM ejecuta:
+
+```bash
+python app/evaluate_model.py
+```
+
+Se guardarán `models/metrics.json`, `models/confusion_matrix.png` y
+`models/classification_report.txt`.
+
 ## Estructura de las secuencias
 
 Las predicciones se realizan con secuencias de **35 frames**, cada frame compuesto por **42 valores flotantes** que representan los puntos clave normalizados de ambas manos. El frontend puede obtener estos puntos con librerías como [MediaPipe](https://developers.google.com/mediapipe) o TensorFlow.js.
@@ -310,4 +322,8 @@ Para realizar inferencias con el modelo CNN+LSTM sin depender de la estructura a
 ```bash
 uvicorn api.main:app --reload
 ```
+
+Cada solicitud POST a `/predict` queda registrada en `models/inference_log.csv`
+con la hora UTC, el `nickname` enviado (si lo hay), la etiqueta predicha,
+la confianza y la etiqueta esperada.
 

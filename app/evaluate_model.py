@@ -1,8 +1,16 @@
+import json
 import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
 from sklearn.metrics import accuracy_score, f1_score, confusion_matrix, classification_report
 from .data_loader import load_dataset
-from .model_utils import load_keras_model, load_encoder
-from .config import CNN_LSTM_MODEL_PATH, ENCODER_PATH
+from .model_utils import load_keras_model
+from .config import (
+    CNN_LSTM_MODEL_PATH,
+    METRICS_JSON_PATH,
+    CONFUSION_MATRIX_PATH,
+    REPORT_PATH,
+)
 
 
 def main():
@@ -20,6 +28,18 @@ def main():
     print('F1 weighted:', f1_weight)
     print('Confusion Matrix:\n', cm)
     print('Report:\n', report)
+
+    # Save metrics
+    with open(METRICS_JSON_PATH, 'w') as f:
+        json.dump({'accuracy': acc, 'f1_macro': f1_macro, 'f1_weighted': f1_weight}, f)
+    with open(REPORT_PATH, 'w') as f:
+        f.write(report)
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues')
+    plt.xlabel('Predicted')
+    plt.ylabel('True')
+    plt.tight_layout()
+    plt.savefig(CONFUSION_MATRIX_PATH)
+    plt.close()
 
 
 if __name__ == '__main__':

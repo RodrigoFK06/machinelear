@@ -2,8 +2,14 @@ import tensorflow as tf
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv1D, MaxPooling1D, LSTM, Dense
 from .data_loader import load_dataset
-from .model_utils import save_model, save_encoder
-from .config import EPOCHS, BATCH_SIZE, CNN_LSTM_MODEL_PATH, ENCODER_PATH
+from .model_utils import save_model, save_encoder, plot_metrics
+from .config import (
+    EPOCHS,
+    BATCH_SIZE,
+    CNN_LSTM_MODEL_PATH,
+    ENCODER_PATH,
+    CNN_LSTM_PLOT_PATH,
+)
 
 
 def build_model(num_classes: int) -> Sequential:
@@ -29,6 +35,7 @@ def main():
     )
     save_model(model, CNN_LSTM_MODEL_PATH)
     save_encoder(encoder, ENCODER_PATH)
+    plot_metrics(history, CNN_LSTM_PLOT_PATH)
     return history
 
 
