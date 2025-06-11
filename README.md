@@ -1,329 +1,204 @@
-# Medical Sign Recognition API
+# Medical Sign Recognition System
 
-Este backend en **FastAPI** provee servicios de reconocimiento de señas médicas mediante un modelo LSTM entrenado con secuencias de puntos clave de las manos. Está pensado para integrarse con aplicaciones web o móviles que capturen gestos en tiempo real y necesiten obtener una predicción inmediata junto con métricas de rendimiento.
+Este proyecto implementa un sistema de reconocimiento de señas médicas basado en una arquitectura **CNN+LSTM**. Incluye los scripts de entrenamiento y evaluación, una API ligera con FastAPI y utilidades para generar datasets de prueba.
 
 ## Tabla de contenidos
-- [Instalación](#instalación)
-- [Entrenamiento del modelo](#entrenamiento-del-modelo)
-- [Estructura de las secuencias](#estructura-de-las-secuencias)
+- [Requisitos](#requisitos)
+- [Instalación](#instalacion)
+- [Estructura del proyecto](#estructura-del-proyecto)
+- [Preparación del dataset](#preparacion-del-dataset)
+- [Entrenamiento](#entrenamiento)
+- [Evaluación del modelo](#evaluacion-del-modelo)
 - [Uso de la API](#uso-de-la-api)
-  - [/predict](#post-predict)
-  - [/labels](#get-labels)
-  - [/records](#get-records)
-  - [/progress](#get-progress)
-  - [/activity/daily](#get-activitydailynicknamedate)
-  - [/stats/global_distribution](#get-statsglobal_distribution)
-- [Integración desde frontend](#integración-desde-frontend)
-- [Pruebas automatizadas](#pruebas-automatizadas)
-- [Colección Postman](#colección-postman)
+- [Integración con el frontend](#integracion-con-el-frontend)
+- [Pruebas](#pruebas)
+- [Legacy](#legacy)
 
-## Instalación
+## Requisitos
+- Python 3.11 o superior
+- `virtualenv` o similar para aislar dependencias
 
-1. Clona el repositorio y crea un entorno virtual de Python 3.11 o superior.
-2. Copia `.env.example` a `.env` y ajusta las variables:
-   - `MONGO_URI` con tu instancia de MongoDB
-   - `MODEL_PATH` ruta al archivo `lstm_gestos_model.h5`
-   - `ENCODER_PATH` ruta al archivo `label_encoder_lstm.pkl`
-3. Instala las dependencias necesarias:
+## Instalacion
+1. Clona este repositorio.
+2. Crea y activa un entorno virtual:
+   ```bash
+   python3.11 -m venv .venv
+   source .venv/bin/activate
+   ```
+3. Instala las dependencias:
    ```bash
    pip install -r requirements.txt
    ```
-4. Ejecuta el servidor en modo desarrollo:
-   ```bash
-   uvicorn app.main:app --reload
-   ```
 
-## Entrenamiento del modelo
+## Estructura del proyecto
+- **app/**: utilidades de entrenamiento y evaluacion.
+- **api/**: API FastAPI para realizar inferencias con el modelo CNN+LSTM.
+- **models/**: modelos entrenados y artefactos generados.
+- **data/**: dataset en CSV (real o sintético).
+- **tests/**: pruebas unitarias con `pytest`.
+- **config.py**: define rutas y parámetros globales usados por los scripts y la API.
 
-Se proveen dos scripts actualizados para entrenar modelos desde cero utilizando `data/dataset_medico.csv`.
-- `app/train_lstm_model.py` entrena un modelo LSTM.
-- `app/train_cnn_lstm_model.py` entrena una arquitectura CNN+LSTM.
+## Preparacion del dataset
+El modelo se entrena con `data/dataset_medico.csv`, donde cada fila contiene 35×42 valores (puntos clave de ambas manos) y la etiqueta correspondiente.
 
-Configura hiperparámetros en `app/config.py` y ejecuta:
+Si no cuentas con datos reales puedes generar un dataset ficticio ejecutando:
 ```bash
-python app/train_lstm_model.py
-# o
+python app/utils/generate_fake_dataset.py
+```
+El archivo se guardará en `data/dataset_medico.csv`.
+
+## Entrenamiento
+El script principal para entrenar el modelo actual es:
+```bash
 python app/train_cnn_lstm_model.py
 ```
+Generará `models/cnn_lstm_model.h5` y `models/label_encoder.pkl`. Además se guardará la curva de pérdida en `models/loss_plot_cnn_lstm.png`.
 
-Al finalizar cada entrenamiento se generan las curvas de pérdida en
-`models/loss_plot_lstm.png` o `models/loss_plot_cnn_lstm.png`.
+La arquitectura CNN+LSTM añade capas convolucionales previas al LSTM, lo que mejora la extracción de características frente al modelo LSTM puro (`train_lstm_model.py`, mantenido solo con fines históricos).
 
-Para evaluar el modelo CNN+LSTM ejecuta:
-
+## Evaluacion del modelo
+Para evaluar el rendimiento del modelo entrenado:
 ```bash
 python app/evaluate_model.py
 ```
-
-Se guardarán `models/metrics.json`, `models/confusion_matrix.png` y
-`models/classification_report.txt`.
-
-## Estructura de las secuencias
-
-Las predicciones se realizan con secuencias de **35 frames**, cada frame compuesto por **42 valores flotantes** que representan los puntos clave normalizados de ambas manos. El frontend puede obtener estos puntos con librerías como [MediaPipe](https://developers.google.com/mediapipe) o TensorFlow.js.
-
-Ejemplo de cuerpo JSON:
-```json
-{
-  "sequence": [[0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7, 1.8, 1.9, 2.0, 2.1, 2.2, 2.3, 2.4, 2.5, 2.6, 2.7, 2.8, 2.9, 3.0, 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8, 3.9, 4.0, 4.1, 4.2], ... 35 frames],
-  "expected_label": "dolor_de_cabeza",
-  "nickname": "usuario123"
-}
-```
-
-`expected_label` debe pertenecer a la lista devuelta por `/labels`. `nickname` es opcional y se utiliza únicamente para generar estadísticas por usuario (en el futuro será reemplazado por autenticación JWT).
+Se obtendrán las métricas en `models/metrics.json`, la matriz de confusión en `models/confusion_matrix.png` y el reporte de clasificación en `models/classification_report.txt`.
 
 ## Uso de la API
-
-Todas las rutas están prefijadas en la raíz. No se requiere token de autorización en esta versión. Reemplaza `localhost:8000` con tu host si ejecutas en una máquina diferente.
-
-### POST `/predict`
-
-Predice una secuencia de señas médicas.
-
-**URL**: `/predict`
-
-**Método**: `POST`
-
-**Headers**: 
-- `Content-Type: application/json`
-
-**Body**: estructura descrita en [Estructura de las secuencias](#estructura-de-las-secuencias)
-
-**Respuesta exitosa**:
-```json
-{
-  "predicted_label": "dolor_de_cabeza",
-  "confidence": 89.3,
-  "evaluation": "CORRECTO",
-  "observation": null,
-  "success_rate": 74.2,
-  "average_confidence": 82.9
-}
-```
-
-**Ejemplo con cURL**:
-```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d @data/predict_example.json
-```
-
-**Códigos de error**: `400` entrada inválida, `500` error interno.
-
-### GET `/labels`
-
-Devuelve la lista de etiquetas disponibles en el dataset.
-
-**URL**: `/labels`
-
-**Método**: `GET`
-
-**Ejemplo con cURL**:
-```bash
-curl http://localhost:8000/labels
-```
-
-**Códigos de error**: `404` dataset no encontrado, `500` error de lectura.
-
-### GET `/records`
-
-Permite consultar registros de predicción con filtros opcionales.
-
-**URL**: `/records`
-
-**Método**: `GET`
-
-**Parámetros de consulta**:
-- `nickname` – filtrar por nickname de usuario
-- `date_from` – fecha de inicio ISO (ej., `2025-01-01T00:00:00Z`)
-- `date_to` – fecha de fin ISO
-- `evaluation` – `CORRECTO`, `DUDOSO` o `INCORRECTO`
-- `skip` – registros a omitir (paginación)
-- `limit` – máximo de registros a devolver (1‑100)
-
-**Respuesta de ejemplo**:
-```json
-[
-  {
-    "_id": "60d5ec49f0b2f3a1c4d4a9c1",
-    "nickname": "usuario123",
-    "sequence_shape": [35, 42],
-    "predicted_label": "dolor_de_cabeza",
-    "expected_label": "dolor_de_cabeza",
-    "confidence": 89.3,
-    "evaluation": "CORRECTO",
-    "observation": null,
-    "timestamp": "2025-05-20T22:32:10.123Z"
-  }
-]
-```
-
-**Ejemplo con cURL**:
-```bash
-curl "http://localhost:8000/records?nickname=usuario123&limit=5"
-```
-
-La cabecera `X-Total-Count` indica el número total de coincidencias.
-
-**Códigos de error**: `500` errores de consulta en base de datos.
-
-### GET `/progress`
-
-Devuelve estadísticas agregadas por etiqueta y, opcionalmente, por usuario si se especifica `nickname`.
-
-**URL**: `/progress`
-
-**Método**: `GET`
-
-**Parámetros de consulta**:
-- `nickname` – nickname de usuario opcional
-
-**Respuesta de ejemplo**:
-```json
-[
-  {
-    "label": "dolor_de_cabeza",
-    "total_attempts": 5,
-    "correct_attempts": 4,
-    "doubtful_attempts": 0,
-    "incorrect_attempts": 1,
-    "success_rate": 80.0,
-    "doubtful_rate": 0.0,
-    "incorrect_rate": 20.0,
-    "average_confidence": 85.4,
-    "max_confidence": 90.0,
-    "min_confidence": 70.0,
-    "last_attempt": "2025-05-20T22:32:10.123Z"
-  }
-]
-```
-
-**Ejemplo con cURL**:
-```bash
-curl "http://localhost:8000/progress?nickname=usuario123"
-```
-
-**Códigos de error**: `500` error del servidor.
-
-### GET `/activity/daily/{nickname}/{date}`
-
-Entrega el detalle de prácticas de un usuario en un día específico. El formato de fecha debe ser `YYYY-MM-DD`.
-
-**URL**: `/activity/daily/{nickname}/{date}`
-
-**Método**: `GET`
-
-**Respuesta de ejemplo**:
-```json
-{
-  "nickname": "usuario123",
-  "date": "2025-05-20",
-  "summary": {
-    "total_practices": 3,
-    "correct_practices": 2,
-    "doubtful_practices": 1,
-    "incorrect_practices": 0
-  },
-  "records": [
-    {
-      "id": "60d5ec49f0b2f3a1c4d4a9c1",
-      "timestamp": "2025-05-20T10:00:00Z",
-      "predicted_label": "dolor_de_cabeza",
-      "expected_label": "dolor_de_cabeza",
-      "confidence": 90.5,
-      "evaluation": "CORRECTO"
-    }
-  ]
-}
-```
-
-**Ejemplo con cURL**:
-```bash
-curl http://localhost:8000/activity/daily/usuario123/2025-05-20
-```
-
-**Códigos de error**: `400` formato de fecha inválido, `500` error de base de datos.
-
-### GET `/stats/global_distribution`
-
-Muestra la distribución global de evaluaciones (CORRECTO, DUDOSO, INCORRECTO).
-
-**URL**: `/stats/global_distribution`
-
-**Método**: `GET`
-
-**Respuesta de ejemplo**:
-```json
-{
-  "total_evaluations": 2000,
-  "distribution": [
-    {"evaluation_type": "CORRECTO", "count": 1500, "percentage": 75.0},
-    {"evaluation_type": "DUDOSO", "count": 300, "percentage": 15.0},
-    {"evaluation_type": "INCORRECTO", "count": 200, "percentage": 10.0}
-  ]
-}
-```
-
-**Ejemplo con cURL**:
-```bash
-curl http://localhost:8000/stats/global_distribution
-```
-
-**Códigos de error**: `500` error del servidor.
-
-## Integración desde frontend
-
-1. Captura los puntos clave de ambas manos con MediaPipe o TensorFlow.js.
-2. Normaliza los valores de cada frame entre 0 y 1 y construye un arreglo de 35×42.
-3. Envía la secuencia al endpoint `/predict` en formato JSON como se mostró anteriormente.
-4. Utiliza la respuesta para mostrar la etiqueta predicha y la confianza al usuario. Guarda también la evaluación para generar métricas locales si lo deseas.
-
-Aunque actualmente se usa el campo `nickname`, se recomienda planificar un flujo de autenticación con JWT para identificar al usuario y registrar su progreso de manera segura.
-
-### Ejemplo en React (fetch)
-```javascript
-const body = { sequence, expected_label: "dolor_de_cabeza", nickname: "demo" };
-fetch("http://localhost:8000/predict", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify(body)
-}).then(res => res.json()).then(console.log);
-```
-
-### Ejemplo en Flutter (http)
-```dart
-final response = await http.post(
-  Uri.parse('http://localhost:8000/predict'),
-  headers: {'Content-Type': 'application/json'},
-  body: jsonEncode({
-    'sequence': sequence,
-    'expected_label': 'dolor_de_cabeza',
-    'nickname': 'demo'
-  }),
-);
-```
-
-## Pruebas automatizadas
-
-El repositorio incluye pruebas unitarias con **pytest**. Para ejecutarlas:
-```bash
-pytest -q
-```
-Los tests utilizan stubs para evitar dependencias reales de TensorFlow y MongoDB, por lo que pueden correr sin configurar servicios externos.
-
-## Colección Postman
-
-Puedes importar los endpoints en Postman utilizando la siguiente colección de ejemplo: [`postman_collection.json`](postman_collection.json). Si prefieres otras herramientas como Insomnia o Hoppscotch, basta con replicar las peticiones `curl` mostradas en cada endpoint.
-
-Para pruebas rápidas también puedes crear las solicitudes manualmente utilizando los ejemplos de cURL proporcionados en cada sección.
-### Nueva API ligera
-Para realizar inferencias con el modelo CNN+LSTM sin depender de la estructura anterior se incluye `api/main.py`. Se inicia con:
+Inicia la API ligera con:
 ```bash
 uvicorn api.main:app --reload
 ```
+Cada petición a `/predict` se registrará en `models/inference_log.csv` con la fecha UTC, el *nickname* (si se envía) y la confianza obtenida.
 
-Cada solicitud POST a `/predict` queda registrada en `models/inference_log.csv`
-con la hora UTC, el `nickname` enviado (si lo hay), la etiqueta predicha,
-la confianza y la etiqueta esperada.
+### Endpoints disponibles
 
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| **GET** | `/health` | Comprobación de que el servicio está activo. Devuelve `{"status": "ok"}` |
+| **GET** | `/labels` | Lista de etiquetas médicas disponibles (cargadas del dataset) |
+| **POST** | `/predict` | Envía una secuencia de 35×42 puntos para obtener la predicción y métricas |
+
+### Solicitud `POST /predict`
+Se debe enviar un cuerpo JSON y establecer el encabezado `Content-Type: application/json`:
+
+```json
+{
+  "sequence": [[0.0, 0.1, ...], ...],
+  "expected_label": "dolor_de_cabeza",
+  "nickname": "demo"
+}
+```
+
+### Respuesta de ejemplo
+```json
+{
+  "predicted_label": "dolor_de_cabeza",
+  "confidence": 92.5,
+  "evaluation": "CORRECTO",
+  "success_rate": 80.0,
+  "average_confidence": 85.2
+}
+```
+
+
+### Ejemplo de solicitud
+```bash
+curl -X POST http://localhost:8000/predict \
+  -H "Content-Type: application/json" \
+  -d '{"sequence": [[0.0, ..., 0.1]], "nickname": "demo"}'
+```
+
+  La secuencia debe contener 35 arreglos de 42 flotantes. La respuesta incluye la etiqueta predicha, la confianza, la evaluación y las métricas agregadas (`success_rate`, `average_confidence`), además del vector completo de probabilidades.
+
+## Integracion con el frontend
+Para consumir el servicio desde aplicaciones web o móviles:
+1. Prepara la **secuencia** como un arreglo de 35 frames, cada uno con 42 valores flotantes normalizados entre 0 y 1.
+2. Envía un JSON al endpoint `/predict` con los campos:
+   - `sequence` *(obligatorio)*: la secuencia de puntos clave.
+   - `expected_label` *(opcional)*: etiqueta que esperas obtener para evaluar la predicción.
+   - `nickname` *(opcional)*: identificador del usuario para estadísticas.
+3. La respuesta contiene `predicted_label`, `confidence`, `evaluation`, `average_confidence` y `success_rate`.
+4. No se requiere autenticación, pero incluir `nickname` ayuda a generar métricas históricas.
+
+La API desplegada en Render tiene la URL base `https://mi-backend.onrender.com`.
+
+### Ejemplo en JavaScript (fetch)
+```javascript
+const body = {
+  sequence,
+  expected_label: "dolor_de_cabeza",
+  nickname: "demo"
+};
+fetch("https://mi-backend.onrender.com/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+})
+  .then(r => r.json())
+  .then(data => console.log(data))
+  .catch(console.error);
+```
+
+### Ejemplo en React
+```javascript
+import { useState, useEffect } from "react";
+
+export default function PredictView({ sequence }) {
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!sequence) return;
+    fetch("https://mi-backend.onrender.com/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sequence })
+    })
+      .then(res => res.json())
+      .then(setResult)
+      .catch(console.error);
+  }, [sequence]);
+
+  return result && (
+    <div>
+      <p>Etiqueta: {result.predicted_label}</p>
+      <p>Confianza: {result.confidence.toFixed(2)}%</p>
+    </div>
+  );
+}
+```
+
+### Ejemplo en Flutter
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<void> sendSequence(List<List<double>> sequence) async {
+  final resp = await http.post(
+    Uri.parse('https://mi-backend.onrender.com/predict'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'sequence': sequence,
+      'nickname': 'demo'
+    }),
+  );
+  if (resp.statusCode == 200) {
+    final data = jsonDecode(resp.body);
+    print('Etiqueta: ${data['predicted_label']}');
+  } else {
+    throw Exception('Error ${resp.statusCode}: ${resp.body}');
+  }
+}
+```
+
+### Buenas prácticas
+- Los artefactos `cnn_lstm_model.h5` y `label_encoder.pkl` se encuentran en la carpeta `models/` y el encoder se carga con **joblib**, no con `pickle`.
+- Muestra las métricas de `success_rate` y `average_confidence` para dar retroalimentación al usuario.
+
+## Pruebas
+Las pruebas unitarias se ejecutan con:
+```bash
+pytest -q
+```
+
+## Legacy
+El repositorio conserva scripts y archivos del modelo LSTM original (`lstm_gestos_model.h5` y `label_encoder_lstm.pkl`). También existe una configuración `.env` orientada a una API con MongoDB. Estos elementos se mantienen por compatibilidad, pero el flujo recomendado utiliza el modelo CNN+LSTM y no requiere variables de entorno.
