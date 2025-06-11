@@ -49,6 +49,7 @@ El archivo se guardará en `data/dataset_medico.csv`.
 
 ## Entrenamiento
 El script principal para entrenar el modelo actual es:
+
 ```bash
 python app/train_cnn_lstm_model.py
 ```
@@ -58,9 +59,11 @@ La arquitectura CNN+LSTM añade capas convolucionales previas al LSTM, lo que me
 
 ## Evaluacion del modelo
 Para evaluar el rendimiento del modelo entrenado:
+
 ```bash
-python app/evaluate_model.py
+python app/train_cnn_lstm_model.py
 ```
+
 Se obtendrán las métricas en `models/metrics.json`, la matriz de confusión en `models/confusion_matrix.png` y el reporte de clasificación en `models/classification_report.txt`.
 
 ## Uso de la API
@@ -70,6 +73,39 @@ uvicorn api.main:app --reload
 ```
 Cada petición a `/predict` se registrará en `models/inference_log.csv` con la fecha UTC, el *nickname* (si se envía) y la confianza obtenida.
 
+### Endpoints disponibles
+
+| Método | Ruta | Descripción |
+|--------|------|-------------|
+| **GET** | `/health` | Comprobación de que el servicio está activo. Devuelve `{"status": "ok"}` |
+| **GET** | `/labels` | Lista de etiquetas médicas disponibles (cargadas del dataset) |
+| **POST** | `/predict` | Envía una secuencia de 35×42 puntos para obtener la predicción y métricas |
+
+### Solicitud `POST /predict`
+Se debe enviar un cuerpo JSON y establecer el encabezado `Content-Type: application/json`:
+
+```json
+{
+  "sequence": [[0.0, 0.1, ...], ...],
+  "expected_label": "dolor_de_cabeza",
+  "nickname": "demo"
+}
+```
+
+### Respuesta de ejemplo
+```json
+{
+  "predicted_label": "dolor_de_cabeza",
+  "confidence": 92.5,
+  "evaluation": "CORRECTO",
+  "success_rate": 80.0,
+  "average_confidence": 85.2
+}
+
+```
+Cada petición a `/predict` se registrará en `models/inference_log.csv` con la fecha UTC, el *nickname* (si se envía) y la confianza obtenida.
+
+
 ### Ejemplo de solicitud
 ```bash
 curl -X POST http://localhost:8000/predict \
@@ -77,7 +113,9 @@ curl -X POST http://localhost:8000/predict \
   -d '{"sequence": [[0.0, ..., 0.1]], "nickname": "demo"}'
 ```
 
-La secuencia debe contener 35 arreglos de 42 flotantes. La respuesta incluye la etiqueta predicha, la confianza y el vector de probabilidades.
+
+  La secuencia debe contener 35 arreglos de 42 flotantes. La respuesta incluye la etiqueta predicha, la confianza, la evaluación y las métricas agregadas (`success_rate`, `average_confidence`), además del vector completo de probabilidades.
+
 
 ## Integracion con el frontend
 Para consumir el servicio desde aplicaciones web o móviles:
