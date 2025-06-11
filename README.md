@@ -35,13 +35,16 @@ Este backend en **FastAPI** provee servicios de reconocimiento de señas médica
 
 ## Entrenamiento del modelo
 
-El script `app/legacy/train_lstm_model.py` permite entrenar el modelo LSTM a partir del archivo `dataset_medico.csv` (35×42 características por frame). Al finalizar se guarda `lstm_gestos_model.h5` y el codificador de etiquetas `label_encoder_lstm.pkl` que son cargados automáticamente por la API.
+Se proveen dos scripts actualizados para entrenar modelos desde cero utilizando `data/dataset_medico.csv`.
+- `app/train_lstm_model.py` entrena un modelo LSTM.
+- `app/train_cnn_lstm_model.py` entrena una arquitectura CNN+LSTM.
 
-Para lanzar el entrenamiento:
+Configura hiperparámetros en `app/config.py` y ejecuta:
 ```bash
-python app/legacy/train_lstm_model.py
+python app/train_lstm_model.py
+# o
+python app/train_cnn_lstm_model.py
 ```
-Asegúrate de que `dataset_medico.csv` esté limpio y estructurado correctamente (la última columna debe contener la etiqueta de la seña).
 
 ## Estructura de las secuencias
 
@@ -302,3 +305,9 @@ Los tests utilizan stubs para evitar dependencias reales de TensorFlow y MongoDB
 Puedes importar los endpoints en Postman utilizando la siguiente colección de ejemplo: [`postman_collection.json`](postman_collection.json). Si prefieres otras herramientas como Insomnia o Hoppscotch, basta con replicar las peticiones `curl` mostradas en cada endpoint.
 
 Para pruebas rápidas también puedes crear las solicitudes manualmente utilizando los ejemplos de cURL proporcionados en cada sección.
+### Nueva API ligera
+Para realizar inferencias con el modelo CNN+LSTM sin depender de la estructura anterior se incluye `api/main.py`. Se inicia con:
+```bash
+uvicorn api.main:app --reload
+```
+
