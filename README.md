@@ -10,6 +10,7 @@ Este proyecto implementa un sistema de reconocimiento de señas médicas basado 
 - [Entrenamiento](#entrenamiento)
 - [Evaluación del modelo](#evaluacion-del-modelo)
 - [Uso de la API](#uso-de-la-api)
+- [Integración con el frontend](#integracion-con-el-frontend)
 - [Pruebas](#pruebas)
 - [Legacy](#legacy)
 
@@ -75,7 +76,92 @@ curl -X POST http://localhost:8000/predict \
   -H "Content-Type: application/json" \
   -d '{"sequence": [[0.0, ..., 0.1]], "nickname": "demo"}'
 ```
+
 La secuencia debe contener 35 arreglos de 42 flotantes. La respuesta incluye la etiqueta predicha, la confianza y el vector de probabilidades.
+
+## Integracion con el frontend
+Para consumir el servicio desde aplicaciones web o móviles:
+1. Prepara la **secuencia** como un arreglo de 35 frames, cada uno con 42 valores flotantes normalizados entre 0 y 1.
+2. Envía un JSON al endpoint `/predict` con los campos:
+   - `sequence` *(obligatorio)*: la secuencia de puntos clave.
+   - `expected_label` *(opcional)*: etiqueta que esperas obtener para evaluar la predicción.
+   - `nickname` *(opcional)*: identificador del usuario para estadísticas.
+3. La respuesta contiene `predicted_label`, `confidence`, `evaluation`, `average_confidence` y `success_rate`.
+4. No se requiere autenticación, pero incluir `nickname` ayuda a generar métricas históricas.
+
+La API desplegada en Render tiene la URL base `https://mi-backend.onrender.com`.
+
+### Ejemplo en JavaScript (fetch)
+```javascript
+const body = {
+  sequence,
+  expected_label: "dolor_de_cabeza",
+  nickname: "demo"
+};
+fetch("https://mi-backend.onrender.com/predict", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify(body)
+})
+  .then(r => r.json())
+  .then(data => console.log(data))
+  .catch(console.error);
+```
+
+### Ejemplo en React
+```javascript
+import { useState, useEffect } from "react";
+
+export default function PredictView({ sequence }) {
+  const [result, setResult] = useState(null);
+
+  useEffect(() => {
+    if (!sequence) return;
+    fetch("https://mi-backend.onrender.com/predict", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sequence })
+    })
+      .then(res => res.json())
+      .then(setResult)
+      .catch(console.error);
+  }, [sequence]);
+
+  return result && (
+    <div>
+      <p>Etiqueta: {result.predicted_label}</p>
+      <p>Confianza: {result.confidence.toFixed(2)}%</p>
+    </div>
+  );
+}
+```
+
+### Ejemplo en Flutter
+```dart
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+
+Future<void> sendSequence(List<List<double>> sequence) async {
+  final resp = await http.post(
+    Uri.parse('https://mi-backend.onrender.com/predict'),
+    headers: {'Content-Type': 'application/json'},
+    body: jsonEncode({
+      'sequence': sequence,
+      'nickname': 'demo'
+    }),
+  );
+  if (resp.statusCode == 200) {
+    final data = jsonDecode(resp.body);
+    print('Etiqueta: ${data['predicted_label']}');
+  } else {
+    throw Exception('Error ${resp.statusCode}: ${resp.body}');
+  }
+}
+```
+
+### Buenas prácticas
+- Los artefactos `cnn_lstm_model.h5` y `label_encoder.pkl` se encuentran en la carpeta `models/` y el encoder se carga con **joblib**, no con `pickle`.
+- Muestra las métricas de `success_rate` y `average_confidence` para dar retroalimentación al usuario.
 
 ## Pruebas
 Las pruebas unitarias se ejecutan con:
