@@ -3,7 +3,7 @@ from pathlib import Path
 # Base directories
 BASE_DIR = Path(__file__).parent.parent
 DATA_DIR = BASE_DIR / "data"
-MODELS_DIR = BASE_DIR / "models"
+MODELS_DIR = BASE_DIR / "app" / "models"
 
 # Dataset and model paths
 DATASET_PATH = DATA_DIR / "dataset_medico.csv"
@@ -17,9 +17,11 @@ BATCH_SIZE = 8
 DATA_PATH = str(DATASET_PATH)  # For backward compatibility
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
-LSTM_PLOT_PATH = 'models/loss_plot_lstm.png'
-CNN_LSTM_PLOT_PATH = 'models/loss_plot_cnn_lstm.png'
-METRICS_JSON_PATH = 'models/metrics.json'
-CONFUSION_MATRIX_PATH = 'models/confusion_matrix.png'
-REPORT_PATH = 'models/classification_report.txt'
-INFERENCE_LOG_PATH = 'models/inference_log.csv'
+
+# Plot and metrics output paths
+LSTM_PLOT_PATH = MODELS_DIR / "loss_plot_lstm.png"
+CNN_LSTM_PLOT_PATH = MODELS_DIR / "loss_plot_cnn_lstm.png"
+METRICS_JSON_PATH = MODELS_DIR / "metrics.json"
+CONFUSION_MATRIX_PATH = MODELS_DIR / "confusion_matrix.png"
+REPORT_PATH = MODELS_DIR / "classification_report.txt"
+INFERENCE_LOG_PATH = MODELS_DIR / "inference_log.csv"
