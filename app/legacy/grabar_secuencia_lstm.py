@@ -4,6 +4,8 @@ import os
 import numpy as np
 from app.utils.hand_tracking import HandTracker
 from app.utils.data_processing import DataProcessor
+from app.config import DATASET_PATH
+
 SEQUENCE_DURATION = 4.0
 FPS = 10
 FRAMES_TOTAL = int(SEQUENCE_DURATION * FPS)
@@ -16,7 +18,7 @@ BOX_HEIGHT = 480
 tracker = HandTracker()
 processor = DataProcessor()
 
-CSV_PATH = os.path.join("D:", os.sep, "machinelear", "data", "dataset_medico.csv")
+CSV_PATH = str(DATASET_PATH)
 
 def save_sequence(sequence, label, level, output_path=CSV_PATH):
     if len(sequence) != FRAMES_TO_SAVE:

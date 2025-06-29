@@ -6,6 +6,7 @@ from app.services.evaluator import evaluate_prediction
 from app.services.feedback_analyzer import analizar_error
 from app.models.schema import PredictRequest, PredictResponse
 from app.db.mongodb import collection, stats_collection
+from app.config import DATASET_PATH, MODELS_DIR
 
 UMBRAL_CONFIANZA = 75.0
 UMBRAL_RECHAZO = 20.0
@@ -19,8 +20,8 @@ UMBRAL_POR_CLASE = {
 }
 
 # Carga normalización
-MEAN = np.load("app/models/mean.npy")
-STD = np.load("app/models/std.npy")
+MEAN = np.load(str(MODELS_DIR / "mean.npy"))
+STD = np.load(str(MODELS_DIR / "std.npy"))
 
 def es_secuencia_invalida(seq: np.ndarray) -> bool:
     if np.count_nonzero(seq) < 0.5 * seq.size:
@@ -88,7 +89,7 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
 
     observation = None
     if evaluation == "INCORRECTO":
-        dataset_path = "D:/machinelear/data/dataset_medico.csv"
+        dataset_path = str(DATASET_PATH)
         observation = analizar_error(sequence, dataset_path, data.expected_label)
 
     registro = {

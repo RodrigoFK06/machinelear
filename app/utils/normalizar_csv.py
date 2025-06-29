@@ -1,9 +1,10 @@
 import pandas as pd
 import os
+from app.config import DATASET_PATH, DATA_DIR
 
 # Rutas de entrada y salida
-INPUT_CSV = "D:/machinelear/data/dataset_medico.csv"
-OUTPUT_CSV = os.path.join("data", "dataset_medico_normalizado.csv")
+INPUT_CSV = str(DATASET_PATH)
+OUTPUT_CSV = str(DATA_DIR / "dataset_medico_normalizado.csv")
 
 # Resolución estándar usada por MediaPipe o cámara
 WIDTH = 640

@@ -8,12 +8,12 @@ import tensorflow.keras.models as models
 from sklearn.preprocessing import LabelEncoder
 from sklearn.model_selection import train_test_split
 from tensorflow.keras.utils import to_categorical
+from app.config import DATASET_PATH, MODELS_DIR
 
 # Configuración
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CSV_PATH = os.path.join(os.path.dirname(__file__), "dataset_medico.csv")
-MODELS_DIR = os.path.join(BASE_DIR, "models")
-os.makedirs(MODELS_DIR, exist_ok=True)
+CSV_PATH = str(DATASET_PATH)
+MODELS_DIR_STR = str(MODELS_DIR)
+os.makedirs(MODELS_DIR_STR, exist_ok=True)
 
 # Cargar el dataset
 df = pd.read_csv(CSV_PATH, header=None)
@@ -38,7 +38,7 @@ y_encoded = encoder.fit_transform(y)
 y_categorical = to_categorical(y_encoded)
 
 # Guardar el encoder
-encoder_path = os.path.join(MODELS_DIR, "label_encoder_lstm.pkl")
+encoder_path = os.path.join(MODELS_DIR_STR, "label_encoder_lstm.pkl")
 with open(encoder_path, "wb") as f:
     pickle.dump(encoder, f)
 
@@ -65,7 +65,7 @@ model.compile(
 model.fit(X_train, y_train, epochs=50, batch_size=32, validation_split=0.2)
 
 # Guardado compatible
-model_path = os.path.join(MODELS_DIR, "lstm_gestos_model.h5")
+model_path = os.path.join(MODELS_DIR_STR, "lstm_gestos_model.h5")
 model.save(model_path, save_format="h5")
 
 # Alternativa: SavedModel format (más robusto)

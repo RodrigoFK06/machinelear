@@ -4,10 +4,11 @@ from typing import List, Optional
 from datetime import datetime
 import os
 import pandas as pd
+from app.config import DATASET_PATH
 
 # Cargar etiquetas válidas desde el CSV
 def load_labels():
-    dataset_path = "D:/machinelear/data/dataset_medico.csv"
+    dataset_path = str(DATASET_PATH)
     if not os.path.exists(dataset_path):
         return []
     df = pd.read_csv(dataset_path, header=None)

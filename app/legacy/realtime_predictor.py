@@ -6,14 +6,14 @@ import pickle
 import pyttsx3
 from app.utils.hand_tracking import HandTracker
 from app.utils.data_processing import DataProcessor
+from app.config import BASE_DIR
 
 # Inicializar voz
 engine = pyttsx3.init()
 
 # Configuración de rutas
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "sign_language_model.h5")
-ENCODER_PATH = os.path.join(BASE_DIR, "label_encoder.pkl")
+MODEL_PATH = str(BASE_DIR / "sign_language_model.h5")
+ENCODER_PATH = str(BASE_DIR / "label_encoder.pkl")
 
 # Cargar modelo y encoder
 model = tf.keras.models.load_model(MODEL_PATH)

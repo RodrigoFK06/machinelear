@@ -7,10 +7,10 @@ from sklearn.preprocessing import LabelEncoder
 import tensorflow as tf
 import tensorflow.keras.layers as layers
 import tensorflow.keras.models as models
+from app.config import DATASET_PATH, BASE_DIR
 
-# Obtener ruta absoluta al archivo dataset_medico.csv
-BASE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-CSV_PATH = os.path.join(BASE_DIR, "dataset_medico.csv")  # ¡Nuevo nombre de archivo!
+# Obtener ruta desde configuración centralizada
+CSV_PATH = str(DATASET_PATH)
 
 # Cargar el dataset
 data = pd.read_csv(CSV_PATH)
@@ -24,7 +24,7 @@ encoder = LabelEncoder()
 y_encoded = encoder.fit_transform(y)
 
 # Guardar el encoder
-with open(os.path.join(BASE_DIR, "label_encoder.pkl"), "wb") as f:
+with open(str(BASE_DIR / "label_encoder.pkl"), "wb") as f:
     pickle.dump(encoder, f)
 
 # Dividir en entrenamiento y prueba
@@ -48,7 +48,7 @@ loss, accuracy = model.evaluate(X_test, y_test)
 print(f"\n✅ Precisión en datos de prueba: {accuracy * 100:.2f}%")
 
 # Guardar el modelo
-model_path = os.path.join(BASE_DIR, "sign_language_model.h5")
+model_path = str(BASE_DIR / "sign_language_model.h5")
 model.save(model_path)
 print(f"✅ Modelo guardado en: {model_path}")
 

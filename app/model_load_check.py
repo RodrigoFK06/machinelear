@@ -1,9 +1,9 @@
 import os
 import tensorflow as tf
 import numpy as np
+from app.config import MODELS_DIR
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-MODEL_PATH = os.path.join(BASE_DIR, "app", "models", "lstm_gestos_model.h5")
+MODEL_PATH = str(MODELS_DIR / "lstm_gestos_model.h5")
 
 model = tf.keras.models.load_model(MODEL_PATH)
 

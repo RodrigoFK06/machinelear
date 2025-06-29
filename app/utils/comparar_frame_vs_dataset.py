@@ -1,9 +1,10 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from app.config import DATASET_PATH
 
 FRAME_PATH = "frame_actual.txt"
-CSV_PATH = "D:/machinelear/data/dataset_medico.csv"  # o la ruta donde esté realmente
+CSV_PATH = str(DATASET_PATH)
 LABEL = "hola_buenos_dias"
 
 # Cargar frame real

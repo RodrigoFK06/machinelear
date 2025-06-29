@@ -1,7 +1,8 @@
 import pandas as pd
 import numpy as np
+from app.config import DATASET_PATH
 
-csv_path = "D:/machinelear/data/dataset_medico.csv"
+csv_path = str(DATASET_PATH)
 etiqueta_objetivo = "me_duele_la_cabeza"
 
 # Cargar sin encabezado

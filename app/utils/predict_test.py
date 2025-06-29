@@ -1,9 +1,10 @@
 import numpy as np
 import csv
 from app.services.model_loader import model, encoder
+from app.config import DATASET_PATH
 
 # Ruta del archivo CSV con una secuencia a probar
-csv_path = "D:\machinelear\data\dataset_medico.csv"
+csv_path = str(DATASET_PATH)
 # Nombre de la etiqueta a probar (puedes cambiarla)
 etiqueta_objetivo = "tengo_dolor_de_garganta"
 

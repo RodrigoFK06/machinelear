@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException
 import pandas as pd
 import os
 import logging
+from app.config import DATASET_PATH
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -11,7 +12,7 @@ logger = logging.getLogger(__name__)
             summary="Obtener etiquetas de señas y sus niveles",
             description="Retorna una lista de señas médicas únicas con su nivel (principiante, intermedio o avanzado).")
 def get_labels():
-    dataset_path = os.path.join("D:", os.sep, "machinelear", "data", "dataset_medico.csv")
+    dataset_path = str(DATASET_PATH)
 
     if not os.path.exists(dataset_path):
         logger.error("Dataset file not found at %s", dataset_path)
