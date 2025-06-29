@@ -7,11 +7,11 @@ import pandas as pd
 
 # Cargar etiquetas válidas desde el CSV
 def load_labels():
-    dataset_path = os.path.join("app", "legacy", "dataset_medico.csv")
+    dataset_path = "D:/machinelear/data/dataset_medico.csv"
     if not os.path.exists(dataset_path):
         return []
     df = pd.read_csv(dataset_path, header=None)
-    label_col = df.columns[-1]
+    label_col = df.columns[-2]
     return df[label_col].dropna().unique().tolist()
 
 VALID_LABELS = load_labels()
@@ -28,17 +28,24 @@ class PredictRequest(BaseModel):
         for frame in value:
             if len(frame) != 42:
                 raise ValueError(f"Cada frame en la secuencia debe tener exactamente 42 valores (keypoints), pero se encontró un frame con {len(frame)} valores.")
-            for val in frame:
-                if not isinstance(val, float):
-                    raise ValueError("Todos los valores en los frames de la secuencia deben ser números de punto flotante.")
+            for i, val in enumerate(frame):
+                try:
+                    frame[i] = float(val)
+                except Exception:
+                    raise ValueError(f"Valor no convertible a float: {val}")
+
         return value
 
     @validator("expected_label")
     def validate_label(cls, value):
-        if value not in VALID_LABELS:
-            # Consider logging VALID_LABELS or providing a separate endpoint for debugging.
+        print("🔄 Validando etiqueta:", value)
+        value = value.strip().lower()
+        valid_labels = [label.strip().lower() for label in load_labels()]
+        print("📋 Etiquetas válidas cargadas:", valid_labels)
+        if value not in valid_labels:
             raise ValueError(f"La etiqueta '{value}' no es válida. Por favor, use una etiqueta conocida.")
         return value
+
 
 class PredictResponse(BaseModel):
     predicted_label: str = Field(..., description="La etiqueta predicha por el modelo.", example="dolor_de_cabeza")

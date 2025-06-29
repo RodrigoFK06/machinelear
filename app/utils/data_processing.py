@@ -3,18 +3,30 @@ import numpy as np
 class DataProcessor:
     def normalize_landmarks(self, landmarks):
         """
-        Normaliza los puntos clave de la mano para que sean independientes
-        del tamaño y la posición en la imagen.
+        Normaliza los landmarks de una mano centrando en la muñeca
+        y escalando a [-1, 1] basado en la mano más extendida.
         """
-        if not landmarks:
-            return None
+        if not landmarks or len(landmarks) != 21:
+            return [0.0] * 42
 
-        # Convertimos a array de numpy por facilidad
-        landmarks_array = np.array(landmarks)
+        landmarks_array = np.array(landmarks, dtype=np.float32)
 
-        # Usamos el primer punto (muñeca) como origen
+        # Centro (muñeca)
         base_x, base_y = landmarks_array[0]
-        normalized = [(x - base_x, y - base_y) for x, y in landmarks_array]
+        centered = landmarks_array - [base_x, base_y]
 
-        # Aplanamos el array (de 21 puntos a un vector de 42 valores)
-        return np.array(normalized).flatten()
+        # Escalar basado en la distancia máxima desde la muñeca
+        distances = np.linalg.norm(centered, axis=1)
+        max_dist = np.max(distances)
+        if max_dist < 1.0:
+            max_dist = 1.0  # evita división absurda
+
+        normalized = centered / max_dist
+        return normalized.flatten().tolist()
+
+    def extract_xy_landmarks(self, hand_landmarks):
+        landmarks = []
+        for lm in hand_landmarks.landmark:
+            landmarks.extend([lm.x, lm.y])
+        return landmarks
+

@@ -1,4 +1,4 @@
-EPOCHS = 5
+EPOCHS = 25
 BATCH_SIZE = 8
 DATA_PATH = 'data/dataset_medico.csv'
 LSTM_MODEL_PATH = 'models/lstm_model.h5'

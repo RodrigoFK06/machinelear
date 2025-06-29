@@ -6,17 +6,12 @@ import logging
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-# TODO: For improved scalability and performance with a large number of labels
-# or high traffic, consider loading these labels from a database collection
-# instead of a CSV file on each call.
-
 @router.get("/labels",
-            response_model=list[str],
-            summary="Get all unique medical sign labels",
-            description="Retrieves a sorted list of all unique medical sign labels available in the system, loaded from the medical dataset."
-            )
+            response_model=list[dict],
+            summary="Obtener etiquetas de señas y sus niveles",
+            description="Retorna una lista de señas médicas únicas con su nivel (principiante, intermedio o avanzado).")
 def get_labels():
-    dataset_path = os.path.join("app", "legacy", "dataset_medico.csv")
+    dataset_path = os.path.join("D:", os.sep, "machinelear", "data", "dataset_medico.csv")
 
     if not os.path.exists(dataset_path):
         logger.error("Dataset file not found at %s", dataset_path)
@@ -24,22 +19,25 @@ def get_labels():
 
     try:
         df = pd.read_csv(dataset_path, header=None)
-        if df.empty:
-            logger.warning("Dataset file at %s is empty.", dataset_path)
-            return []
 
-        label_col_index = -1 # Assuming label is the last column
-        if df.shape[1] <= abs(label_col_index):
-             logger.error("Dataset file %s does not have enough columns to find the label column.", dataset_path)
-             raise HTTPException(status_code=500, detail="Formato de dataset incorrecto: no se encontró la columna de etiquetas.")
+        if df.empty or df.shape[1] < 2:
+            raise HTTPException(status_code=500, detail="El dataset está vacío o no tiene suficientes columnas.")
 
-        label_col = df.columns[label_col_index]
-        labels = df[label_col].dropna().unique().tolist()
-        labels = sorted([str(label).strip() for label in labels]) # Ensure labels are strings
-        return labels
-    except pd.errors.EmptyDataError:
-        logger.warning("Dataset file at %s is empty or could not be parsed by pandas.", dataset_path)
-        raise HTTPException(status_code=500, detail="Error procesando el dataset: archivo vacío o malformado.")
+        label_col = df.columns[-2]  # penúltima columna
+        level_col = df.columns[-1]  # última columna
+
+        df = df[[label_col, level_col]].dropna().drop_duplicates()
+
+        # Validar niveles permitidos
+        valid_levels = {"principiante", "intermedio", "avanzado"}
+        df = df[df[level_col].str.lower().isin(valid_levels)]
+
+        result = df.rename(columns={label_col: "label", level_col: "level"}) \
+                   .sort_values(by=["level", "label"]) \
+                   .to_dict(orient="records")
+
+        return result
+
     except Exception as e:
-        logger.exception("Error processing dataset file %s", dataset_path)
-        raise HTTPException(status_code=500, detail=f"Error leyendo etiquetas: {str(e)}")
+        logger.exception("Error procesando el archivo del dataset.")
+        raise HTTPException(status_code=500, detail=f"Error leyendo etiquetas y niveles: {str(e)}")

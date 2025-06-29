@@ -1,3 +1,5 @@
+import traceback
+
 from fastapi import APIRouter, HTTPException
 from app.models.schema import PredictRequest, PredictResponse
 from app.services.predictor import predict_sequence  # Ya guarda en MongoDB internamente
@@ -11,8 +13,13 @@ router = APIRouter()
              )
 async def predict(request: PredictRequest):
     try:
+        print("📩 Entrada recibida:")
+        print(request.dict())
         return await predict_sequence(request)
     except ValueError as e:
+        print("⚠️ ValueError en predict():", str(e))
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        print("❌ Excepción en predict():", str(e))
+        traceback.print_exc()  # 🔥 Esto mostrará el error real en consola
         raise HTTPException(status_code=500, detail=f"Error interno en la predicción: {str(e)}")
