@@ -1,7 +1,7 @@
 import os
 import numpy as np
 from datetime import datetime
-from app.services.model_loader import model, encoder
+from app.services.model_loader import get_model, get_encoder
 from app.services.evaluator import evaluate_prediction
 from app.services.feedback_analyzer import analizar_error
 from app.models.schema import PredictRequest, PredictResponse
@@ -50,6 +50,10 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
             average_confidence=None
         )
 
+    # Obtener modelo y encoder de forma lazy
+    model = get_model()
+    encoder = get_encoder()
+    
     prediction = model.predict(np.array([sequence]), verbose=0)
     print("📊 Vector de predicción completo:", prediction[0])
     for i, val in enumerate(prediction[0]):

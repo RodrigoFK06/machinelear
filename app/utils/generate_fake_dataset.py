@@ -2,10 +2,10 @@
 import os
 import numpy as np
 import pandas as pd
+from app.config import DATASET_PATH
 
-# Asegurarse de que exista la carpeta 'data' en la raíz del proyecto
-data_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', 'data'))
-os.makedirs(data_dir, exist_ok=True)
+# Ensure the data directory exists
+DATASET_PATH.parent.mkdir(parents=True, exist_ok=True)
 
 N = 100
 frames = 35
@@ -20,7 +20,7 @@ for _ in range(N):
 
 df = pd.DataFrame(rows)
 
-output_path = os.path.join(data_dir, 'dataset_medico.csv')
+output_path = str(DATASET_PATH)
 df.to_csv(output_path, index=False, header=False)
 
 print(f"✅ Dataset falso guardado en: {output_path}")

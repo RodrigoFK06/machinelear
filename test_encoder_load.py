@@ -1,8 +1,9 @@
 import joblib
 import os
+from app.config import ENCODER_PATH
 
-# Ajusta la ruta si cambió tu estructura de carpetas
-encoder_path = os.path.join("models", "label_encoder.pkl")
+# Use centralized config for encoder path
+encoder_path = str(ENCODER_PATH)
 
 try:
     encoder = joblib.load(encoder_path)

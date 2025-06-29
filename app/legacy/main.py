@@ -3,11 +3,12 @@ import time
 from app.utils.hand_tracking import HandTracker
 from app.utils.data_processing import DataProcessor
 from app.legacy.data_collector import DataCollector
+from app.config import DATASET_PATH
 import numpy as np
 
 # Configuración
-NOMBRE_ARCHIVO = "dataset_medico.csv"
-RUTA_ARCHIVO = NOMBRE_ARCHIVO
+NOMBRE_ARCHIVO = DATASET_PATH.name
+RUTA_ARCHIVO = str(DATASET_PATH)
 
 # Zona de detección
 BOX_WIDTH = 300

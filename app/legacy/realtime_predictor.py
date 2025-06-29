@@ -12,8 +12,9 @@ from app.config import BASE_DIR
 engine = pyttsx3.init()
 
 # Configuración de rutas
-MODEL_PATH = str(BASE_DIR / "sign_language_model.h5")
-ENCODER_PATH = str(BASE_DIR / "label_encoder.pkl")
+from app.config import MODELS_DIR
+MODEL_PATH = str(MODELS_DIR / "sign_language_model.h5")
+ENCODER_PATH = str(MODELS_DIR / "label_encoder.pkl")
 
 # Cargar modelo y encoder
 model = tf.keras.models.load_model(MODEL_PATH)

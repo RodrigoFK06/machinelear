@@ -7,7 +7,7 @@ from app.config import INFERENCE_LOG_PATH
 
 def run_prediction(req: PredictRequest) -> PredictResponse:
     label, conf, probs = predict(req.sequence)
-    with open(INFERENCE_LOG_PATH, 'a', newline='') as f:
+    with open(str(INFERENCE_LOG_PATH), 'a', newline='') as f:
         writer = csv.writer(f)
         writer.writerow([
             datetime.utcnow().isoformat(),

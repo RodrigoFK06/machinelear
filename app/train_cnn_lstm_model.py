@@ -54,7 +54,11 @@ def build_model(num_classes: int) -> Sequential:
     return model
 
 
-def plot_confusion(y_true, y_pred, encoder, save_path="app/models/confusion_matrix.png"):
+def plot_confusion(y_true, y_pred, encoder, save_path=None):
+    if save_path is None:
+        from app.config import CONFUSION_MATRIX_PATH
+        save_path = str(CONFUSION_MATRIX_PATH)
+    
     import matplotlib.pyplot as plt
     import seaborn as sns
     from sklearn.metrics import confusion_matrix

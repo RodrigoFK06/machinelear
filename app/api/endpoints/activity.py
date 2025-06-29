@@ -20,7 +20,7 @@ router = APIRouter(tags=["User Activity"])
 # Accessing other users' activity would require admin privileges and a different path structure.
 async def get_daily_activity(
     nickname: str = Path(..., description="User's nickname", example="usuario123"),
-    date_str: str = Path(..., description="Date in YYYY-MM-DD format", example="2023-10-28", regex="^\d{4}-\d{2}-\d{2}$")
+    date_str: str = Path(..., description="Date in YYYY-MM-DD format", example="2023-10-28", regex=r"^\d{4}-\d{2}-\d{2}$")
 ):
     try:
         parsed_date = datetime.strptime(date_str, "%Y-%m-%d").date()

@@ -26,9 +26,11 @@ def reproducir_audio(texto):
 def main():
     print("🧠 ARCHIVO CORRECTO: realtime_lstm_predictor.py")
 
+    from app.config import BASE_DIR, MODELS_DIR
+    
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    MODEL_PATH = os.path.join(BASE_DIR, "src", "lstm_gestos_model.h5")
-    ENCODER_PATH = os.path.join(BASE_DIR, "src", "label_encoder_lstm.pkl")
+    MODEL_PATH = str(MODELS_DIR / "lstm_gestos_model.h5")
+    ENCODER_PATH = str(MODELS_DIR / "label_encoder_lstm.pkl")
     REGISTROS_DIR = os.path.join(BASE_DIR, "registros")
     os.makedirs(REGISTROS_DIR, exist_ok=True)
 
@@ -121,7 +123,8 @@ def main():
                     csv_path = os.path.join(REGISTROS_DIR, output_file)
 
                     if evaluacion == "INCORRECTO":
-                        dataset_path = os.path.join(BASE_DIR, "src", "dataset_medico.csv")
+                        from app.config import DATASET_PATH
+                        dataset_path = str(DATASET_PATH)
                         observacion = analizar_error(sequence, dataset_path, nombre_sena)
                         print(observacion)
 

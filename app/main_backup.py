@@ -12,12 +12,6 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = FastAPI(
-    title="Medical Sign Recognition API",
-    description="Backend para la plataforma de aprendizaje de señas médicas con evaluación en tiempo real.",
-    version="1.0.0"
-)
-
 # Middleware para manejo de errores
 @app.middleware("http")
 async def error_handling_middleware(request: Request, call_next):
@@ -36,6 +30,12 @@ async def error_handling_middleware(request: Request, call_next):
             }
         )
 
+app = FastAPI(
+    title="Medical Sign Recognition API",
+    description="Backend para la plataforma de aprendizaje de señas médicas con evaluación en tiempo real.",
+    version="1.0.0"
+)
+
 # ✅ CORS: define orígenes seguros para producción
 origins = [
     "https://machinefrontend.vercel.app",  # frontend en Vercel (producción)
@@ -53,17 +53,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-# Evento de inicio para logging
-@app.on_event("startup")
-async def startup_event():
-    logger.info("🚀 Medical Sign Recognition API iniciada exitosamente")
-    logger.info("📚 Documentación disponible en /docs")
-    
-# Evento de cierre para logging  
-@app.on_event("shutdown")
-async def shutdown_event():
-    logger.info("🛑 Medical Sign Recognition API cerrándose")
 
 # Montar las rutas del API
 app.include_router(api_router)
@@ -91,3 +80,14 @@ async def health_check():
     """
     logger.info("Health check realizado")
     return {"status": "ok"}
+
+# Evento de inicio para logging
+@app.on_event("startup")
+async def startup_event():
+    logger.info("🚀 Medical Sign Recognition API iniciada exitosamente")
+    logger.info("📚 Documentación disponible en /docs")
+    
+# Evento de cierre para logging  
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("🛑 Medical Sign Recognition API cerrándose")

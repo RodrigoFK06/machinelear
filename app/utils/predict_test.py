@@ -1,6 +1,6 @@
 import numpy as np
 import csv
-from app.services.model_loader import model, encoder
+from app.services.model_loader import get_model, get_encoder
 from app.config import DATASET_PATH
 
 # Ruta del archivo CSV con una secuencia a probar
@@ -24,6 +24,10 @@ def main():
     print("📦 Secuencia cargada. Forma:", secuencia.shape)
     print("📈 Varianza:", np.var(secuencia))
     print("🎯 Primeros valores del primer frame:", secuencia[0][:5])
+
+    # Obtener modelo y encoder de forma lazy
+    model = get_model()
+    encoder = get_encoder()
 
     # Predicción
     prediction = model.predict(np.array([secuencia]), verbose=0)
