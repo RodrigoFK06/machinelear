@@ -1,0 +1,66 @@
+# Resumen del Modelo CNN + LSTM
+
+Model: "sequential"
+┏━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━━━━━━━━━━━━━┳━━━━━━━━━━━━━━━━━┓
+┃ Layer (type)                         ┃ Output Shape                ┃         Param # ┃
+┡━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━━━━━━━━━━━━━╇━━━━━━━━━━━━━━━━━┩
+│ conv1d (Conv1D)                      │ (None, 33, 64)              │           8,128 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization                  │ (None, 33, 64)              │             256 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling1d (MaxPooling1D)         │ (None, 16, 64)              │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout (Dropout)                    │ (None, 16, 64)              │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ conv1d_1 (Conv1D)                    │ (None, 14, 128)             │          24,704 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ batch_normalization_1                │ (None, 14, 128)             │             512 │
+│ (BatchNormalization)                 │                             │                 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ max_pooling1d_1 (MaxPooling1D)       │ (None, 7, 128)              │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_1 (Dropout)                  │ (None, 7, 128)              │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ lstm (LSTM)                          │ (None, 7, 128)              │         131,584 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ lstm_1 (LSTM)                        │ (None, 64)                  │          49,408 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense (Dense)                        │ (None, 64)                  │           4,160 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dropout_2 (Dropout)                  │ (None, 64)                  │               0 │
+├──────────────────────────────────────┼─────────────────────────────┼─────────────────┤
+│ dense_1 (Dense)                      │ (None, 5)                   │             325 │
+└──────────────────────────────────────┴─────────────────────────────┴─────────────────┘
+ Total params: 219,077 (855.77 KB)
+ Trainable params: 218,693 (854.27 KB)
+ Non-trainable params: 384 (1.50 KB)
+
+
+# Hiperparámetros utilizados
+- EPOCHS: 25
+- BATCH_SIZE: 8
+- Optimizer: Adam
+- Loss function: Sparse Categorical Crossentropy
+- Métrica: Accuracy
+- Dropout: 0.4
+- Conv1D filtros: [64, 128], kernel_size: 3, activación: ReLU
+- LSTM units: [128, 64], return_sequences=True en el primero
+- Regularización L2: 0.001 en capa densa
+
+# Parámetros del Modelo
+- Total parámetros: 219,077
+- Entrenables: 218,693
+- No entrenables: 384
+- Tamaño aproximado en memoria: 0.84 MB
+
+# Cálculo automático de Compuertas y Filtros
+- LSTM:
+  - lstm: 128 unidades × 4 = 512 compuertas
+  - lstm_1: 64 unidades × 4 = 256 compuertas
+  - Total: 768 compuertas LSTM
+
+- CNN:
+  - conv1d: 64 filtros
+  - conv1d_1: 128 filtros
+  - Total: 192 filtros convolucionales

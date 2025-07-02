@@ -1,3 +1,4 @@
+
 from fastapi import FastAPI
 from .schema import PredictRequest, PredictResponse
 from .predict_service import run_prediction

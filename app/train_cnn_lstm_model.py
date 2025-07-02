@@ -135,7 +135,67 @@ def main():
     class_weight_dict = dict(enumerate(class_weights))
 
     model = build_model(len(encoder.classes_))
+    # Mostrar y guardar el resumen del modelo y los hiperparámetros
+    summary_path = "app/data/model_summary.txt"
+    os.makedirs(os.path.dirname(summary_path), exist_ok=True)
+    with open(summary_path, "w", encoding="utf-8") as f:
+        f.write("# Resumen del Modelo CNN + LSTM\n\n")
+        model.summary(print_fn=lambda x: f.write(x + "\n"))
 
+        # Hiperparámetros principales
+        f.write("\n# Hiperparámetros utilizados\n")
+        f.write(f"- EPOCHS: {EPOCHS}\n")
+        f.write(f"- BATCH_SIZE: {BATCH_SIZE}\n")
+        f.write("- Optimizer: Adam\n")
+        f.write("- Loss function: Sparse Categorical Crossentropy\n")
+        f.write("- Métrica: Accuracy\n")
+        f.write("- Dropout: 0.4\n")
+        f.write("- Conv1D filtros: [64, 128], kernel_size: 3, activación: ReLU\n")
+        f.write("- LSTM units: [128, 64], return_sequences=True en el primero\n")
+        f.write("- Regularización L2: 0.001 en capa densa\n")
+
+        # Parámetros entrenables
+        total_params = model.count_params()
+        trainable_params = np.sum([np.prod(w.shape) for w in model.trainable_weights])
+        non_trainable_params = total_params - trainable_params
+        size_mb = (total_params * 4) / (1024 ** 2)  # float32 = 4 bytes
+
+        f.write("\n# Parámetros del Modelo\n")
+        f.write(f"- Total parámetros: {total_params:,}\n")
+        f.write(f"- Entrenables: {trainable_params:,}\n")
+        f.write(f"- No entrenables: {non_trainable_params:,}\n")
+        f.write(f"- Tamaño aproximado en memoria: {size_mb:.2f} MB\n")
+
+        # Cálculo automático de Compuertas y Filtros
+        lstm_gates = 0
+        conv_filters = 0
+        lstm_details = []
+        conv_details = []
+
+        for layer in model.layers:
+            if isinstance(layer, LSTM):
+                units = layer.units
+                gates = 4 * units
+                lstm_gates += gates
+                lstm_details.append(f"{layer.name}: {units} unidades × 4 = {gates} compuertas")
+            elif isinstance(layer, Conv1D):
+                filters = layer.filters
+                conv_filters += filters
+                conv_details.append(f"{layer.name}: {filters} filtros")
+
+        f.write("\n# Cálculo automático de Compuertas y Filtros\n")
+        f.write("- LSTM:\n")
+        for detail in lstm_details:
+            f.write(f"  - {detail}\n")
+        f.write(f"  - Total: {lstm_gates} compuertas LSTM\n\n")
+
+        f.write("- CNN:\n")
+        for detail in conv_details:
+            f.write(f"  - {detail}\n")
+        f.write(f"  - Total: {conv_filters} filtros convolucionales\n")
+
+
+    print(f"📄 Resumen del modelo y los hiperparámetros guardado en: {summary_path}")
     early_stop = EarlyStopping(patience=5, restore_best_weights=True)
 
     history = model.fit(

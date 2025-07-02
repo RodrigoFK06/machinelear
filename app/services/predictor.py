@@ -3,7 +3,6 @@ import numpy as np
 from datetime import datetime
 from app.services.model_loader import get_model, get_encoder
 from app.services.evaluator import evaluate_prediction
-from app.services.feedback_analyzer import analizar_error
 from app.models.schema import PredictRequest, PredictResponse
 from app.db.mongodb import collection, stats_collection
 from app.config import DATASET_PATH, MODELS_DIR
@@ -73,7 +72,7 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
             predicted_label="ninguna",
             confidence=confidence,
             evaluation="NO_RECONOCIDA",
-            observation=f"La predicción de '{predicted_label}' tiene confianza {confidence}%, por debajo del umbral ({umbral_especifico}%).",
+            observation=f"La GAAAAAAAAAAAAAAA de '{predicted_label}' tiene confianza {confidence}%, por debajo del umbral ({umbral_especifico}%).",
             success_rate=None,
             average_confidence=None
         )
@@ -91,10 +90,14 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
     print("🏷️  Etiqueta esperada:", data.expected_label)
     print("🎯  Evaluación:", evaluation)
 
-    observation = None
-    if evaluation == "INCORRECTO":
-        dataset_path = str(DATASET_PATH)
-        observation = analizar_error(sequence, dataset_path, data.expected_label)
+    # Nueva observación si fue "a suerte"
+    if predicted_label != data.expected_label:
+        observation = (
+            f"La seña detectada fue '{predicted_label}', pero esperábamos '{data.expected_label}'. "
+            f"Porfavor vuelve a intentarlo. ¡Recuerda que aún soy un modelo en Desarrollo!"
+        )
+    else:
+        observation = None  # Puedes agregar más lógica si deseas mensajes personalizados para aciertos
 
     registro = {
         "nickname": data.nickname,
