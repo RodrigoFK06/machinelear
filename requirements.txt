@@ -7,7 +7,7 @@ motor>=3.3.0
 pymongo>=4.5.0
 
 # Machine Learning
-tensorflow==2.16.2
+tensorflow==2.19.0
 numpy==1.26.4
 pandas==2.2.2
 scikit-learn==1.5.2

@@ -72,7 +72,7 @@ async def predict_sequence(data: PredictRequest) -> PredictResponse:
             predicted_label="ninguna",
             confidence=confidence,
             evaluation="NO_RECONOCIDA",
-            observation=f"La GAAAAAAAAAAAAAAA de '{predicted_label}' tiene confianza {confidence}%, por debajo del umbral ({umbral_especifico}%).",
+            observation=f"La seña de '{predicted_label}' tiene confianza {confidence}%, por debajo del umbral ({umbral_especifico}%).",
             success_rate=None,
             average_confidence=None
         )
